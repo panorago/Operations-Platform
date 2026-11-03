@@ -1,19 +1,28 @@
 import PreviewBanner from "../modules/PreviewBanner";
-import { useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import { useAppStore } from "../../store";
 import { date, today } from "../../lib/utils";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 export default function Shell() {
-  const s = useAppStore();
+  const main = useRef<HTMLElement>(null);
+  const location = useLocation();
+  useEffect(() => {
+    main.current?.scrollTo(0, 0);
+  }, [location.pathname]);
+  const startSimulation = useAppStore((s) => s.startSimulation),
+    refresh = useAppStore((s) => s.refresh),
+    refreshMonitor = useAppStore((s) => s.refreshMonitor);
+  const s = { startSimulation, refresh, refreshMonitor };
   useEffect(() => {
     const cleanup = s.startSimulation();
-    const id = setInterval(
-      () => void s.refresh().catch(() => undefined),
-      60000,
-    );
+    void s.refreshMonitor();
+    const id = setInterval(() => {
+      void s.refresh().catch(() => undefined);
+      void s.refreshMonitor();
+    }, 60000);
     return () => {
       cleanup();
       clearInterval(id);
@@ -25,7 +34,7 @@ export default function Shell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <PreviewBanner />
         <Topbar />
-        <main className="flex-1 overflow-y-auto px-5 py-[18px]">
+        <main ref={main} className="flex-1 overflow-y-auto px-5 py-[18px]">
           <Outlet />
         </main>
         <footer className="flex justify-between px-5 py-2 text-xs text-muted">

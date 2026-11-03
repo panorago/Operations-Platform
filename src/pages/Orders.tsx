@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useAppStore } from "../store";
 import { Badge, Button, DataTable, Modal } from "../components/ui";
@@ -23,13 +24,14 @@ const tone = (s: string) =>
           : "neutral";
 export default function Orders() {
   const s = useAppStore();
+  const [params] = useSearchParams();
   const [q, setQ] = useState(""),
     [supplier, setSupplier] = useState("all"),
     [status, setStatus] = useState("all"),
     [from, setFrom] = useState(""),
     [to, setTo] = useState(""),
     [page, setPage] = useState(1),
-    [id, setId] = useState<string | null>(null);
+    [id, setId] = useState<string | null>(params.get("order"));
   const selected = s.orders.find((o) => o.id === id);
   const filtered = s.orders.filter(
     (o) =>
@@ -285,7 +287,13 @@ export default function Orders() {
                       })
                   }
                 >
-                  Mark {status.toLowerCase()}
+                  {status === "Processing"
+                    ? "Process"
+                    : status === "Cancelled"
+                      ? "Cancel"
+                      : status === "Dispatched"
+                        ? "Dispatch"
+                        : "Receive"}
                 </Button>
               ))}
           </div>

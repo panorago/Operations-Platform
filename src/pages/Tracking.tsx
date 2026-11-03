@@ -1,3 +1,4 @@
+import SimulationControls from "../components/modules/SimulationControls";
 import { lazy, Suspense, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
@@ -36,12 +37,11 @@ export default function Tracking() {
           <p className="eyebrow mb-2">LOGISTICS & DISTRIBUTION</p>
           <h1>Live truck tracking</h1>
           <p className="subtext">
-            Your supplier deliveries, connected across Harare.
+            Animated playback across Harare · routes loop after a 20-second
+            arrival stop.
           </p>
         </div>
-        <Badge variant="warning">
-          <Radio aria-hidden size={10} /> Simulated telemetry · 30s updates
-        </Badge>
+        <SimulationControls />
       </div>
       <div className="panel grid h-[calc(100vh-200px)] min-h-[580px] grid-cols-[220px_1fr_240px] overflow-hidden">
         <section className="overflow-auto border-r-[0.5px] border-edge">
@@ -82,10 +82,13 @@ export default function Tracking() {
           </Suspense>
           <div className="absolute left-3 top-3 z-[400] flex gap-2">
             <Badge variant="success">
-              On route: {s.trucks.filter((t) => !t.delayed).length}
+              On route:{" "}
+              {s.trucks.filter((t) => !t.delayed && t.progress < 100).length}
             </Badge>
             <Badge variant="danger">
-              <TriangleAlert aria-hidden size={10} /> 1 delivery delayed
+              <TriangleAlert aria-hidden size={10} />{" "}
+              {s.trucks.filter((t) => t.delayed && t.progress < 100).length}{" "}
+              delayed
             </Badge>
           </div>
           <p className="absolute bottom-6 left-3 z-[400] rounded bg-surface/90 px-2 py-1 text-xs text-muted">
@@ -128,7 +131,7 @@ export default function Tracking() {
           <div className="my-5">
             <div className="mb-2 flex justify-between text-sm">
               <span className="text-muted">Route progress</span>
-              <span>{t.progress}%</span>
+              <span>{Math.round(t.progress)}%</span>
             </div>
             <ProgressBar
               value={t.progress}

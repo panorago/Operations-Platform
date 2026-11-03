@@ -1,3 +1,5 @@
+import ProductImage from "../components/modules/ProductImage";
+import QuantityInput from "../components/ui/QuantityInput";
 import { useState } from "react";
 import {
   ShoppingBag,
@@ -18,7 +20,7 @@ import { useAppStore, useCartStore } from "../store";
 import { Badge, Button, EmptyState, StatusDot } from "../components/ui";
 import { money, stockStatus, supplierStatus, orderTotals } from "../lib/utils";
 import PaymentModal from "../components/modules/PaymentModal";
-const icons = [Milk, Wheat, Droplets, Croissant, Sparkles, Wine];
+
 export default function Catalogue() {
   const s = useAppStore(),
     cart = useCartStore();
@@ -26,7 +28,9 @@ export default function Catalogue() {
     [sort, setSort] = useState("name"),
     [categories, setCategories] = useState<string[]>([]),
     [inStock, setInStock] = useState(false),
-    [price, setPrice] = useState(15),
+    [minPrice, setMinPrice] = useState(""),
+    [maxPrice, setMaxPrice] = useState(""),
+    [quantities, setQuantities] = useState<Record<string, number>>({}),
     [checkout, setCheckout] = useState<"pay" | "credit" | null>(null);
   const rows = s.products
     .filter(
@@ -34,7 +38,8 @@ export default function Catalogue() {
         (s.activeSupplier === "all" || p.supplierId === s.activeSupplier) &&
         (!categories.length || categories.includes(p.category)) &&
         (!inStock || p.stock > 0) &&
-        p.price <= price &&
+        (minPrice === "" || p.price >= Number(minPrice)) &&
+        (maxPrice === "" || p.price <= Number(maxPrice)) &&
         `${p.name} ${p.supplierName}`
           .toLowerCase()
           .includes(search.toLowerCase()),
@@ -118,20 +123,44 @@ export default function Catalogue() {
             In stock only
           </label>
           <p className="eyebrow mb-3 mt-6">PRICE RANGE</p>
-          <input
-            aria-label="Maximum unit price"
-            type="range"
-            min="0"
-            max="15"
-            step="0.1"
-            value={price}
-            onChange={(e) => setPrice(Number(e.target.value))}
-            className="w-full"
-          />
-          <div className="mt-1 flex justify-between text-xs text-muted">
-            <span>$0.00</span>
-            <span>{money(price)}</span>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="field">
+              Min $
+              <input
+                aria-label="Minimum unit price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                className="!w-full !min-w-0 !px-2"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              Max $
+              <input
+                aria-label="Maximum unit price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Any"
+                className="!w-full !min-w-0 !px-2"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+              />
+            </label>
           </div>
+          <button
+            aria-label="Clear price filter"
+            className="mt-2 text-xs text-gold"
+            onClick={() => {
+              setMinPrice("");
+              setMaxPrice("");
+            }}
+          >
+            Clear range
+          </button>
           <p className="mt-6 rounded bg-ivory p-2 text-xs leading-5 text-muted">
             Stock figures are FreshMark shelf levels. Supplier availability is
             confirmed after ordering.
@@ -166,19 +195,14 @@ export default function Catalogue() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             {rows.map((p) => {
-              const Icon =
-                icons[Number(p.supplierId.split("-")[1]) - 1] || ShoppingBag;
               const item = cart.items.find((i) => i.productId === p.id);
               return (
                 <article className="panel overflow-hidden" key={p.id}>
-                  <div className="relative flex h-[104px] items-center justify-center bg-ivory/80">
-                    <Icon
-                      aria-hidden
-                      size={35}
-                      strokeWidth={1}
-                      className="text-gold"
-                    />
-                    <span className="absolute left-3 top-3 text-[8px] uppercase tracking-widest text-muted">
+                  <div className="group relative h-[150px] overflow-hidden bg-white px-8 pb-1 pt-5">
+                    <div className="h-full w-full transition-transform duration-300 group-hover:scale-110">
+                      <ProductImage product={p} />
+                    </div>
+                    <span className="absolute left-3 top-3 text-xs uppercase tracking-wider text-muted">
                       {p.category}
                     </span>
                   </div>
@@ -204,40 +228,45 @@ export default function Catalogue() {
                       {money(p.price)}{" "}
                       <span className="text-xs text-muted">/ unit</span>
                     </p>
+                    <div className="mb-2">
+                      <QuantityInput
+                        value={item?.qty || quantities[p.id] || 1}
+                        label={`Order quantity ${p.name}`}
+                        onChange={(qty) =>
+                          item
+                            ? cart.updateQty(p.id, qty)
+                            : setQuantities({
+                                ...quantities,
+                                [p.id]: Math.max(1, qty),
+                              })
+                        }
+                      />
+                    </div>
                     {item ? (
-                      <div className="flex h-8 items-center justify-between rounded bg-ivory">
-                        <button
-                          aria-label={`Decrease ${p.name}`}
-                          className="p-2"
-                          onClick={() => cart.updateQty(p.id, item.qty - 1)}
-                        >
-                          <Minus aria-hidden size={12} />
-                        </button>
-                        <span>{item.qty} in order</span>
-                        <button
-                          aria-label={`Increase ${p.name}`}
-                          className="p-2"
-                          onClick={() => cart.updateQty(p.id, item.qty + 1)}
-                        >
-                          <Plus aria-hidden size={12} />
-                        </button>
+                      <div className="flex items-center justify-center gap-2 rounded bg-success-tint py-2 text-xs text-success">
+                        {item.qty.toLocaleString()} units in order
                       </div>
                     ) : (
                       <Button
                         className="w-full px-2"
                         aria-label={`Add ${p.name} to order`}
                         onClick={() => {
-                          cart.addItem(p.id);
+                          cart.addItem(p.id, false, quantities[p.id] || 1);
                           toast.success("Added to order");
                         }}
                       >
-                        Add to order <Plus aria-hidden size={11} />
+                        Add to order
+                        <Plus aria-hidden size={11} />
                       </Button>
                     )}
                     <button
                       aria-label={`Order ${p.name} on credit`}
                       onClick={() => {
-                        cart.addItem(p.id, true);
+                        cart.addItem(
+                          p.id,
+                          true,
+                          item ? 0 : quantities[p.id] || 1,
+                        );
                         toast.success("Added for credit checkout");
                       }}
                       className="mt-2 w-full py-1 text-xs text-gold"
@@ -251,6 +280,10 @@ export default function Catalogue() {
             })}
           </div>
           {!rows.length && <EmptyState title="No matching products" />}
+          <p className="mt-4 text-xs text-muted">
+            Product-specific illustrative photographs. Supplier packaging may
+            vary.
+          </p>
         </section>
         <aside className="panel sticky top-0 flex max-h-[calc(100vh-195px)] flex-col self-start">
           <header className="flex items-center justify-between border-b-[0.5px] border-edge p-3">
@@ -289,22 +322,13 @@ export default function Catalogue() {
                       {i.credit ? " · credit" : ""}
                     </p>
                     <div className="mt-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3 rounded border-[0.5px] border-edge">
-                        <button
-                          aria-label={`Reduce cart ${p.name}`}
-                          className="p-1"
-                          onClick={() => cart.updateQty(p.id, i.qty - 1)}
-                        >
-                          <Minus aria-hidden size={10} />
-                        </button>
-                        <span>{i.qty}</span>
-                        <button
-                          aria-label={`Add cart ${p.name}`}
-                          className="p-1"
-                          onClick={() => cart.updateQty(p.id, i.qty + 1)}
-                        >
-                          <Plus aria-hidden size={10} />
-                        </button>
+                      <div className="w-[112px]">
+                        <QuantityInput
+                          compact
+                          label={`Cart quantity ${p.name}`}
+                          value={i.qty}
+                          onChange={(qty) => cart.updateQty(p.id, qty)}
+                        />
                       </div>
                       <span>{money(p.price * i.qty)}</span>
                     </div>

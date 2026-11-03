@@ -39,7 +39,12 @@ function Access({ roles, children }: { roles: string[]; children: ReactNode }) {
 }
 const Router = isPreview ? HashRouter : BrowserRouter;
 export default function App() {
-  const s = useAppStore();
+  const authChecked = useAppStore((s) => s.authChecked),
+    user = useAppStore((s) => s.user),
+    loaded = useAppStore((s) => s.loaded),
+    checkAuth = useAppStore((s) => s.checkAuth),
+    refresh = useAppStore((s) => s.refresh);
+  const s = { authChecked, user, loaded, checkAuth, refresh };
   useEffect(() => {
     void s.checkAuth();
   }, [s.checkAuth]);

@@ -52,3 +52,20 @@ Exact run outcomes and the pushed commit are reported in the chat after these ch
 ## Remaining production prerequisites
 
 Connect and create the Render service, set the first administrator using its generated setup key, and configure any required live provider accounts. The blueprint uses a paid Starter service and persistent disk; Render presents the cost before confirmation. AI/email/SMS require their respective secure server credentials and sender/recipient settings. No real payment gateway is integrated because the specified payment modal records operational settlement rather than providing a gateway contract. Router v6's moderate upstream advisories remain documented in README; there are no known high-severity production dependency advisories in the last npm audit.
+
+## Follow-up: interactive operations enhancement
+
+The user's subsequent request supersedes the original slider, icon-only products, static AI banner and verbose status-action wording. Changes implemented:
+
+- Modern bento dashboard with live transaction events, interactive chart period/metric selection, shelf-health visualisation, larger fleet map and contextual monitoring panel.
+- Dylan as the preview administrator; new setup suggests Dylan without overwriting existing authenticated users' names.
+- Twenty-nine product-specific illustrative photos in a local atlas, explicitly distinguished from verified supplier pack shots.
+- Typed bulk quantities (up to 1,000,000) on cards/cart, explicit currency range fields, and Process/Dispatch/Receive/Cancel actions.
+- Once-per-second, direction-aware animated truck markers, travelling route dashes, playback controls, map fit/follow/zoom, interactive overview and offline road schematic.
+- An opt-in preview-only transaction cycle that creates and advances sample orders while publishing activity events; it cannot create artificial production transactions.
+- Configurable, invoice-snapshotted daily simple interest with checkout consent, quoted due-date estimate, actual settlement date and accrued totals. No approved interest rates were supplied, so production charging remains disabled until configured.
+- Real server-side Anthropic monitoring, cached assessments, bounded automatic refresh, model/provider response validation and honest unconnected/error states. Local operational checks remain useful without a key. The old static dark banner is removed.
+
+Validation now includes 26 domain/provider tests and expanded browser checks. Live AI and the remote Pages deployment still require the external access described above; successful mock tests are not represented as actual provider connectivity.
+
+Follow-up validation: 26 domain/provider tests passed, both preview browser scenarios passed, and the full server browser workflow passed. Both production and Pages builds passed TypeScript checks. Generated images are illustrative, and live Anthropic connectivity remains unverified because the runtime has no configured API key.

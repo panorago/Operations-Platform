@@ -11,7 +11,14 @@ export default defineConfig({
     viewport: { width: 1440, height: 1000 },
     launchOptions: {
       executablePath: await chromium.executablePath(),
-      args: chromium.args,
+      args: chromium.args.filter(
+        (arg) =>
+          ![
+            "--single-process",
+            "--disable-web-security",
+            "--allow-running-insecure-content",
+          ].includes(arg),
+      ),
     },
     trace: "retain-on-failure",
   },

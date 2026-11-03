@@ -1,3 +1,8 @@
+import {
+  creditCharge,
+  invoiceBalance,
+  defaultCreditPolicy,
+} from "../../lib/credit";
 import { addDays, parseISO } from "date-fns";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -18,14 +23,39 @@ export default function PaymentModal({
   const [method, setMethod] = useState("Bank Transfer");
   const [terms, setTerms] = useState(30);
   const [busy, setBusy] = useState(false);
+  const [paymentDate, setPaymentDate] = useState(today());
+  const [acceptedInterest, setAcceptedInterest] = useState(false);
   const invoice = store.invoices.find((i) => i.id === invoiceId);
-  const total = invoice?.amount ?? cart.totals().total;
+  const principal = invoice?.amount ?? cart.totals().total;
+  const policy = store.settings.creditPolicy || defaultCreditPolicy;
+  const dueDate = date(
+    addDays(parseISO(today()), terms).toISOString(),
+    "yyyy-MM-dd",
+  );
+  const quote = invoice
+    ? invoiceBalance(invoice, paymentDate)
+    : mode === "credit"
+      ? creditCharge(principal, today(), dueDate, policy)
+      : { principal, interest: 0, total: principal, days: 0, annualRate: 0 };
+  const total = quote.total;
   const confirm = async () => {
     setBusy(true);
     const ok = await store.command(
       invoiceId
-        ? { type: "payInvoice", id: invoiceId, method }
-        : { type: "checkout", items: cart.items, mode, method, terms },
+        ? { type: "payInvoice", id: invoiceId, method, paymentDate }
+        : {
+            type: "checkout",
+            items: cart.items,
+            mode,
+            method,
+            terms,
+            ...(mode === "credit" && policy.enabled
+              ? {
+                  quotedAnnualRate: policy.annualRate,
+                  quotedGraceDays: policy.graceDays,
+                }
+              : {}),
+          },
     );
     setBusy(false);
     if (ok) {
@@ -52,7 +82,14 @@ export default function PaymentModal({
         <Button
           className="w-full"
           onClick={() => void confirm()}
-          disabled={busy || (!invoice && !cart.items.length)}
+          disabled={
+            busy ||
+            (!invoice && !cart.items.length) ||
+            (!invoice &&
+              mode === "credit" &&
+              policy.enabled &&
+              !acceptedInterest)
+          }
         >
           {busy
             ? "Saving…"
@@ -87,6 +124,46 @@ export default function PaymentModal({
               </div>
             ))}
           </div>
+        )}
+        {(mode === "credit" || invoice?.credit) && (
+          <div className="space-y-2 rounded-xl border-[0.5px] border-edge p-3">
+            <div className="flex justify-between">
+              <span className="text-muted">Principal incl. VAT</span>
+              <span>{money(principal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted">
+                {invoice ? "Accrued" : "Estimated"} interest
+              </span>
+              <span className="text-gold">{money(quote.interest)}</span>
+            </div>
+            <p className="text-xs leading-5 text-muted">
+              {quote.annualRate > 0
+                ? `${quote.annualRate}% APR · simple daily interest · ${quote.days} chargeable days. Interest is recalculated using the actual settlement date. Credit limits apply to principal.`
+                : "No interest rate is configured. Set an approved APR in Settings → Credits to charge interest on new credit purchases."}
+            </p>
+          </div>
+        )}
+        {invoice && (
+          <label className="field">
+            Settlement date
+            <input
+              aria-label="Settlement date"
+              type="date"
+              value={paymentDate}
+              min={invoice.credit?.issuedDate}
+              max={today()}
+              onChange={(e) => {
+                if (
+                  e.target.value &&
+                  e.target.value <= today() &&
+                  (!invoice.credit ||
+                    e.target.value >= invoice.credit.issuedDate)
+                )
+                  setPaymentDate(e.target.value);
+              }}
+            />
+          </label>
         )}
         {mode === "credit" && !invoice ? (
           <>
@@ -135,6 +212,20 @@ export default function PaymentModal({
               on the next check. In-app reminders are enabled; email and SMS
               need a provider.
             </p>
+            {policy.enabled && (
+              <label className="flex items-start gap-2 text-sm leading-5 text-muted">
+                <input
+                  aria-label="Accept credit interest terms"
+                  type="checkbox"
+                  checked={acceptedInterest}
+                  onChange={(e) => setAcceptedInterest(e.target.checked)}
+                  className="mt-1"
+                />
+                I accept {policy.annualRate}% annual interest, accruing daily
+                after {policy.graceDays} grace days, until the actual payment
+                date.
+              </label>
+            )}
           </>
         ) : (
           <label className="field">

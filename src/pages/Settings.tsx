@@ -1,3 +1,5 @@
+import { useSearchParams } from "react-router-dom";
+import { defaultCreditPolicy } from "../lib/credit";
 import { isPreview } from "../lib/runtime";
 import { useEffect, useState } from "react";
 import { Plus, Check } from "lucide-react";
@@ -9,7 +11,8 @@ import { api, errorMessage } from "../lib/api";
 import type { Settings as SettingsType, Supplier, User, Role } from "../types";
 export default function Settings() {
   const s = useAppStore();
-  const [tab, setTab] = useState("Company");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(params.get("tab") || "Company");
   const [draft, setDraft] = useState<SettingsType>(structuredClone(s.settings));
   const [supplier, setSupplier] = useState<Supplier | null>(null),
     [invite, setInvite] = useState(false),
@@ -282,6 +285,54 @@ export default function Settings() {
                   ))}
                 </tbody>
               </table>
+              <section className="mb-5 rounded-xl border-[0.5px] border-edge p-4">
+                <h3>Continuous AI monitoring</h3>
+                <p className="subtext">
+                  Connect ANTHROPIC_API_KEY securely in the server hosting
+                  settings. No key is stored in this browser.
+                </p>
+                <label className="my-4 flex items-center gap-2">
+                  <input
+                    aria-label="Enable automatic AI monitoring"
+                    type="checkbox"
+                    checked={draft.monitoring?.enabled !== false}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        monitoring: {
+                          intervalMinutes:
+                            draft.monitoring?.intervalMinutes || 5,
+                          enabled: e.target.checked,
+                        },
+                      })
+                    }
+                  />
+                  Analyze changing operations automatically when connected
+                </label>
+                <label className="field">
+                  Minimum analysis interval (minutes)
+                  <input
+                    aria-label="AI analysis interval"
+                    type="number"
+                    min="5"
+                    max="60"
+                    value={draft.monitoring?.intervalMinutes || 5}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        monitoring: {
+                          enabled: draft.monitoring?.enabled !== false,
+                          intervalMinutes: Number(e.target.value),
+                        },
+                      })
+                    }
+                  />
+                </label>
+                <p className="mt-3 text-xs text-muted">
+                  Local checks remain live. AI calls require provider access and
+                  can incur provider charges.
+                </p>
+              </section>
               <Button disabled={busy} onClick={() => void save()}>
                 Save preferences
               </Button>
@@ -337,6 +388,76 @@ export default function Settings() {
                   Suspend new credit orders when a supplier invoice is overdue
                 </label>
               </div>
+              <section className="mb-6 rounded-xl border-[0.5px] border-edge p-4">
+                <h3>Credit interest</h3>
+                <p className="subtext">
+                  Simple daily interest on new purchases, calculated through the
+                  actual settlement date. Existing invoices retain their agreed
+                  rate.
+                </p>
+                <label className="my-4 flex items-center gap-2">
+                  <input
+                    aria-label="Enable credit interest"
+                    type="checkbox"
+                    checked={draft.creditPolicy?.enabled || false}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        creditPolicy: {
+                          ...(draft.creditPolicy || defaultCreditPolicy),
+                          enabled: e.target.checked,
+                        },
+                      })
+                    }
+                  />
+                  Charge interest on new credit purchases
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="field">
+                    Annual rate (APR %)
+                    <input
+                      aria-label="Annual credit interest rate"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={draft.creditPolicy?.annualRate || 0}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          creditPolicy: {
+                            ...(draft.creditPolicy || defaultCreditPolicy),
+                            annualRate: Number(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    Interest-free grace days
+                    <input
+                      aria-label="Interest grace days"
+                      type="number"
+                      min="0"
+                      max="365"
+                      value={draft.creditPolicy?.graceDays || 0}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          creditPolicy: {
+                            ...(draft.creditPolicy || defaultCreditPolicy),
+                            graceDays: Number(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+                <p className="mt-3 text-xs text-muted">
+                  Set only an approved business rate. Rates are currently zero
+                  until configured.
+                </p>
+              </section>
               <Button disabled={busy} onClick={() => void save()}>
                 Save credit policy
               </Button>

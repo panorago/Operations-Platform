@@ -32,6 +32,10 @@ test("all routes and purchasing, payment, stock and settings workflows", async (
   ).toBeVisible();
   await page.screenshot({ path: ".runtime/dashboard.png", fullPage: true });
   expect((await page.request.post("/api/ai")).status()).toBe(503);
+  const monitor = await page.request.get("/api/monitor");
+  expect(monitor.ok()).toBeTruthy();
+  expect((await monitor.json()).providerReady).toBe(false);
+  expect((await page.request.post("/api/monitor/analyze")).status()).toBe(503);
   await page
     .getByRole("link", { name: "Supplier catalogue", exact: true })
     .click();
@@ -58,10 +62,8 @@ test("all routes and purchasing, payment, stock and settings workflows", async (
     .first()
     .getByRole("button", { name: "View →" })
     .click();
-  for (const status of ["processing", "dispatched", "delivered"])
-    await page
-      .getByRole("button", { name: `Mark ${status}`, exact: true })
-      .click();
+  for (const status of ["Process", "Dispatch", "Receive"])
+    await page.getByRole("button", { name: status, exact: true }).click();
   await expect(
     page.getByRole("dialog").getByText("Delivered", { exact: true }).first(),
   ).toBeVisible();

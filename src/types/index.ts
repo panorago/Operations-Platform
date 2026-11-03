@@ -64,7 +64,44 @@ export interface Reminder {
   channels: ("email" | "sms" | "inapp")[];
   delivery: "Pending" | "In-app delivered" | "Cancelled";
 }
+export interface CreditPolicy {
+  enabled: boolean;
+  annualRate: number;
+  graceDays: number;
+}
+export interface ActivityEvent {
+  id: string;
+  type: "order" | "payment" | "delivery" | "system";
+  title: string;
+  description: string;
+  timestamp: string;
+  entityId: string;
+  amount?: number;
+}
+export interface MonitorIssue {
+  id: string;
+  kind: "Stock" | "Credit" | "Delivery";
+  severity: "critical" | "warning";
+  title: string;
+  detail: string;
+  action: string;
+  entityId: string;
+  quantity?: number;
+}
+export interface MonitorState {
+  providerReady: boolean;
+  providerConfigured: boolean;
+  automatic: boolean;
+  status: "local" | "watching" | "analyzing" | "error" | "paused";
+  summary: string | null;
+  checkedAt: string;
+  analyzedAt?: string;
+  error?: string;
+  issues: MonitorIssue[];
+}
 export interface Invoice {
+  credit?: { annualRate: number; graceDays: number; issuedDate: string };
+  paidAmount?: number;
   id: string;
   supplierId: string;
   amount: number;
@@ -107,6 +144,8 @@ export interface Alert {
   entityId?: string;
 }
 export interface Settings {
+  creditPolicy?: CreditPolicy;
+  monitoring?: { enabled: boolean; intervalMinutes: number };
   company: { name: string; address: string; phone: string; email: string };
   notifications: Record<
     string,
@@ -117,6 +156,7 @@ export interface Settings {
   suspendCredit: boolean;
 }
 export interface AppState {
+  activity?: ActivityEvent[];
   suppliers: Supplier[];
   products: Product[];
   trucks: Truck[];
@@ -132,8 +172,10 @@ export type Command =
       mode: "pay" | "credit";
       method: string;
       terms: number;
+      quotedAnnualRate?: number;
+      quotedGraceDays?: number;
     }
-  | { type: "payInvoice"; id: string; method: string }
+  | { type: "payInvoice"; id: string; method: string; paymentDate?: string }
   | { type: "readAlert"; id: string }
   | { type: "readAll" }
   | { type: "saveSettings"; settings: Settings }
@@ -170,6 +212,18 @@ export interface Store extends AppState {
   markAllRead: () => Promise<boolean>;
   getUnread: () => AppState["alerts"];
   startSimulation: () => () => void;
+  simulationRunning: boolean;
+  simulationSpeed: number;
+  autoTransactions: boolean;
+  demoOrderId: string | null;
+  setSimulationRunning: (running: boolean) => void;
+  setSimulationSpeed: (speed: number) => void;
+  setAutoTransactions: (enabled: boolean) => void;
+  resetFleet: () => void;
+  monitor: MonitorState | null;
+  monitorBusy: boolean;
+  refreshMonitor: () => Promise<void>;
+  runAnalysis: () => Promise<void>;
 }
 export interface CartStore {
   items: CartItem[];

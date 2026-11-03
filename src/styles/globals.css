@@ -28,7 +28,7 @@
   button:disabled {
     @apply cursor-not-allowed opacity-40;
   }
-  input:not([type="checkbox"]):not([type="range"]),
+  :where(input:not([type="checkbox"]):not([type="range"])),
   select,
   textarea {
     @apply rounded border-[0.5px] border-edge bg-surface px-3 py-2 text-base outline-none focus:ring-1 focus:ring-gold;
@@ -117,4 +117,105 @@
 }
 .leaflet-control-zoom {
   box-shadow: none !important;
+}
+@layer components {
+  .map-control {
+    @apply flex h-8 w-8 items-center justify-center rounded border-[0.5px] border-edge bg-surface text-muted hover:bg-ivory;
+  }
+  .dashboard-kicker {
+    @apply text-xs uppercase tracking-[.15em] text-muted;
+  }
+}
+.venda-map.leaflet-container {
+  background-color: #e9eee8;
+  background-image:
+    linear-gradient(#d4dfd644 1px, transparent 1px),
+    linear-gradient(90deg, #d4dfd644 1px, transparent 1px);
+  background-size: 38px 38px;
+}
+.fleet-marker {
+  transition: transform 1s linear;
+}
+.truck-pin {
+  position: relative;
+  width: 30px;
+  height: 42px;
+}
+.truck-label {
+  position: absolute;
+  left: 50%;
+  top: 31px;
+  transform: translateX(-50%);
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #fff;
+  color: #1c1c2e;
+  font-size: 8px;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.fleet-selected .truck-pin:before {
+  content: "";
+  position: absolute;
+  inset: -5px 0 7px -5px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #c9933a;
+  animation: truckPulse 2s ease-out infinite;
+}
+.hq-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #1c1c2e;
+  color: #c9933a;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 500;
+  outline: 3px solid #fff;
+}
+.fleet-route {
+  stroke-dasharray: 7 12;
+  animation: routeFlow 1s linear infinite;
+}
+.activity-enter {
+  animation: activityEnter 0.5s ease-out;
+}
+@keyframes truckPulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes routeFlow {
+  to {
+    stroke-dashoffset: -38;
+  }
+}
+@keyframes activityEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fleet-marker {
+    transition: none;
+  }
+  .fleet-route,
+  .fleet-selected .truck-pin:before,
+  .activity-enter {
+    animation: none !important;
+  }
 }

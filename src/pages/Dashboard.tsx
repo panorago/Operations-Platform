@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Truck,
@@ -7,13 +7,28 @@ import {
   CreditCard,
   ShoppingBag,
   ArrowRight,
-  Activity,
+  Clock3,
+  ArrowDownRight,
+  ShieldCheck,
+  Radio,
 } from "lucide-react";
-import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip } from "recharts";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { subDays, parseISO } from "date-fns";
 import { useAppStore } from "../store";
 import {
   Badge,
-  MetricCard,
+  Button,
   ProgressBar,
   Spinner,
   StatusDot,
@@ -27,262 +42,414 @@ import {
   supplierStatus,
   distance,
 } from "../lib/utils";
-import { useState } from "react";
+import { invoiceBalance } from "../lib/credit";
 import PaymentModal from "../components/modules/PaymentModal";
+import MonitorPanel from "../components/modules/MonitorPanel";
+import SimulationControls from "../components/modules/SimulationControls";
+import ActivityFeed from "../components/modules/ActivityFeed";
 const TruckMap = lazy(() => import("../components/modules/TruckMap"));
 export default function Dashboard() {
   const s = useAppStore();
-  const [pay, setPay] = useState<string | null>(null);
-  const alerts = s.products.filter((p) => p.stock <= p.reorderLevel);
+  const [pay, setPay] = useState<string | null>(null),
+    [period, setPeriod] = useState(7),
+    [chartMode, setChartMode] = useState<"orders" | "spend">("orders");
+  const stockIssues = s.products.filter((p) => p.stock <= p.reorderLevel);
   const overdue = s.invoices.filter((i) => !i.paid && daysLeft(i) < 0);
   const urgent = [...s.invoices]
     .filter((i) => !i.paid)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  const moving = s.trucks.filter((t) => t.progress < 100);
   const nearest = [...s.trucks]
     .sort(
       (a, b) => Number(distance(a.lat, a.lng)) - Number(distance(b.lat, b.lng)),
     )
     .slice(0, 4);
-  const recent = s.orders.filter(
+  const orders = s.orders.filter(
     (o) =>
-      o.date.slice(0, 10) >=
-      date(new Date(Date.now() - 7 * 86400000).toISOString(), "yyyy-MM-dd"),
+      date(o.date, "yyyy-MM-dd") >=
+      date(subDays(parseISO(today()), period - 1).toISOString(), "yyyy-MM-dd"),
   );
   const previous = s.orders.filter((o) => {
     const day = date(o.date, "yyyy-MM-dd");
     return (
       day >=
         date(
-          new Date(Date.now() - 14 * 86400000).toISOString(),
+          subDays(parseISO(today()), period * 2 - 1).toISOString(),
           "yyyy-MM-dd",
         ) &&
       day <
-        date(new Date(Date.now() - 7 * 86400000).toISOString(), "yyyy-MM-dd")
+        date(subDays(parseISO(today()), period - 1).toISOString(), "yyyy-MM-dd")
     );
   }).length;
-  const change = previous
-    ? `${(((recent.length - previous) / previous) * 100).toFixed(0)}% vs prior week`
-    : "No orders in prior week";
-  const chart = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(Date.now() - (6 - i) * 86400000).toISOString();
-    return {
-      day: date(d, "EEE"),
-      orders: s.orders.filter(
-        (o) => date(o.date, "yyyy-MM-dd") === date(d, "yyyy-MM-dd"),
-      ).length,
-    };
-  });
+  const delta = previous
+    ? Math.round(((orders.length - previous) / previous) * 100)
+    : null;
+  const chart = useMemo(
+    () =>
+      Array.from({ length: period }, (_, i) => {
+        const d = subDays(parseISO(today()), period - 1 - i);
+        const day = date(d.toISOString(), "yyyy-MM-dd");
+        const rows = s.orders.filter((o) => date(o.date, "yyyy-MM-dd") === day);
+        return {
+          day: date(d.toISOString(), period === 7 ? "EEE" : "dd MMM"),
+          orders: rows.length,
+          spend: Math.round(rows.reduce((n, o) => n + o.total, 0) * 100) / 100,
+        };
+      }),
+    [s.orders, period],
+  );
+  const health = Math.round(
+    ((s.products.length - stockIssues.length) / s.products.length) * 100,
+  );
+  const due = s.invoices
+    .filter((i) => !i.paid && daysLeft(i) <= 30)
+    .reduce((n, i) => n + invoiceBalance(i).total, 0);
+  const metrics = [
+    {
+      label: "Deliveries on the move",
+      value: String(moving.length).padStart(2, "0"),
+      sub: `${s.trucks.filter((t) => t.progress >= 100).length} arrived · ${moving.filter((t) => t.delayed).length} delayed`,
+      icon: Truck,
+      chip: "Fleet live",
+      tone: "success",
+    },
+    {
+      label: `Orders · ${period} days`,
+      value: String(orders.length).padStart(2, "0"),
+      sub:
+        delta === null
+          ? "No orders in prior period"
+          : `${delta >= 0 ? "+" : ""}${delta}% vs previous ${period} days`,
+      icon: ShoppingBag,
+      chip: money(orders.reduce((n, o) => n + o.total, 0)),
+      tone: "neutral",
+    },
+    {
+      label: "Products needing attention",
+      value: String(stockIssues.length).padStart(2, "0"),
+      sub: `${stockIssues.filter((p) => !p.stock).length} out of stock · ${stockIssues.filter((p) => p.stock > 0).length} running low`,
+      icon: Package,
+      chip: "Action needed",
+      tone: "warning",
+    },
+    {
+      label: "Credit due · next 30 days",
+      value: money(due),
+      sub: `${money(overdue.reduce((n, i) => n + invoiceBalance(i).total, 0))} overdue`,
+      icon: CreditCard,
+      chip: `${overdue.length} overdue`,
+      tone: "danger",
+    },
+  ];
   return (
-    <>
-      <div className="page-heading">
+    <div className="space-y-5">
+      <div className="flex items-end justify-between gap-5">
         <div>
-          <p className="eyebrow mb-2">YOUR OPERATION, AT A GLANCE</p>
-          <h1>
+          <p className="dashboard-kicker mb-2">FreshMark command centre</p>
+          <h1 className="text-[26px]">
             Good day, {s.user?.name.split(" ")[0]}{" "}
             <span className="text-gold">.</span>
           </h1>
-          <p className="subtext">
-            Here’s what’s happening across FreshMark today.
+          <p className="mt-2 text-muted">
+            Your retail operation, connected. Here’s where to focus today.
           </p>
         </div>
-        <Link
-          className="flex items-center gap-2 rounded bg-noir px-4 py-2 text-gold"
-          to="/catalogue"
-        >
-          <ShoppingBag aria-hidden size={13} /> Place an order{" "}
-          <ArrowUpRight aria-hidden size={12} />
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/tracking"
+            className="flex items-center gap-2 rounded border-[0.5px] border-edge bg-surface px-3 py-2 text-muted"
+          >
+            <Truck aria-hidden size={13} />
+            Track fleet
+          </Link>
+          {s.user?.role !== "Finance" && (
+            <Link
+              to="/catalogue"
+              className="flex items-center gap-2 rounded bg-noir px-4 py-2 text-gold"
+            >
+              <ShoppingBag aria-hidden size={13} />
+              New order
+              <ArrowUpRight aria-hidden size={12} />
+            </Link>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <SimulationControls transactions />
+        <div className="flex items-center rounded border-[0.5px] border-edge bg-surface p-0.5">
+          {[7, 30].map((n) => (
+            <button
+              key={n}
+              aria-label={`Dashboard last ${n} days`}
+              onClick={() => setPeriod(n)}
+              className={`rounded px-3 py-1.5 text-sm ${period === n ? "bg-noir text-gold" : "text-muted"}`}
+            >
+              Last {n} days
+            </button>
+          ))}
+        </div>
       </div>
       <div className="grid grid-cols-4 gap-3">
-        <MetricCard
-          label="Trucks in transit"
-          value={s.trucks.length.toString().padStart(2, "0")}
-          sub={`${s.trucks.filter((t) => !t.delayed).length} on route · ${s.trucks.filter((t) => t.delayed).length} delayed`}
-          icon={<Truck aria-hidden size={15} />}
-        />
-        <MetricCard
-          label="Orders this week"
-          value={recent.length.toString().padStart(2, "0")}
-          sub={change}
-          icon={<ShoppingBag aria-hidden size={15} />}
-        />
-        <MetricCard
-          label="Stock alerts"
-          value={alerts.length.toString().padStart(2, "0")}
-          sub={`${alerts.filter((p) => !p.stock).length} critical · ${alerts.filter((p) => p.stock > 0).length} low stock`}
-          icon={<Package aria-hidden size={15} />}
-        />
-        <MetricCard
-          label="Credit due · 30 days"
-          value={money(
-            s.invoices
-              .filter((i) => !i.paid && daysLeft(i) <= 30)
-              .reduce((n, i) => n + i.amount, 0),
-          )}
-          sub={
-            <span className="text-danger">
-              {money(overdue.reduce((n, i) => n + i.amount, 0))} overdue ·
-              action needed
-            </span>
-          }
-          icon={<CreditCard aria-hidden size={15} />}
-        />
-      </div>
-      <div className="mb-3 mt-6 flex justify-between">
-        <h3>
-          Supplier network{" "}
-          <span className="ml-2 text-xs text-muted">
-            {s.suppliers.length.toString().padStart(2, "0")} PARTNERS
-          </span>
-        </h3>
-        <Link to="/settings" className="text-sm text-muted">
-          Manage suppliers →
-        </Link>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        {s.suppliers.map((p) => (
-          <Link
-            key={p.id}
-            to="/catalogue"
-            onClick={() => s.setActiveSupplier(p.id)}
-            className="panel flex items-center gap-3 p-3"
+        {metrics.map((m) => (
+          <article
+            key={m.label}
+            className="panel overflow-hidden p-4 transition-colors hover:border-gold/40"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-ivory text-gold">
-              <Package aria-hidden size={15} />
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted">{m.label}</p>
+              <m.icon aria-hidden size={15} className="text-gold" />
             </div>
-            <div className="flex-1">
-              <p className="font-medium">{p.name}</p>
-              <p className="mt-1 text-xs text-muted">
-                {p.category} · {p.trucks.length} trucks in transit
+            <div className="mb-3 mt-5 flex items-end justify-between gap-1">
+              <p className="text-[27px] leading-none tracking-tight">
+                {m.value}
               </p>
+              <Badge variant={m.tone}>{m.chip}</Badge>
             </div>
-            <StatusDot
-              status={
-                s.trucks.some((t) => t.supplierId === p.id && t.delayed)
-                  ? "danger"
-                  : supplierStatus(p, s.invoices)
-              }
-            />
-            <ArrowUpRight aria-hidden size={12} className="text-muted" />
-          </Link>
+            <p
+              className={`text-xs ${m.tone === "danger" ? "text-danger" : "text-muted"}`}
+            >
+              {m.sub}
+            </p>
+          </article>
         ))}
       </div>
-      <div className="mt-5 grid grid-cols-[3fr_2fr] gap-4">
-        <section className="panel overflow-hidden">
-          <div className="flex justify-between p-4">
-            <div>
-              <h3>Live deliveries</h3>
-              <p className="mt-1 text-xs text-muted">
-                Harare distribution network · simulated GPS
-              </p>
+      <div className="grid grid-cols-[minmax(0,1.8fr)_minmax(300px,1fr)] items-start gap-4">
+        <div className="space-y-4">
+          <section className="panel overflow-hidden">
+            <header className="flex items-center justify-between px-4 py-3.5">
+              <div>
+                <h3>Distribution network</h3>
+                <p className="mt-1 text-xs text-muted">
+                  Harare · interactive fleet simulation
+                </p>
+              </div>
+              <Link
+                to="/tracking"
+                className="flex items-center gap-1 text-sm text-gold"
+              >
+                Open map
+                <ArrowUpRight aria-hidden size={12} />
+              </Link>
+            </header>
+            <div className="h-[290px]">
+              <Suspense fallback={<Spinner />}>
+                <TruckMap mini />
+              </Suspense>
             </div>
-            <Badge variant="success">
-              <Activity aria-hidden size={9} /> LIVE SIMULATION
-            </Badge>
-          </div>
-          <div className="relative h-[235px]">
-            <Suspense fallback={<Spinner />}>
-              <TruckMap mini />
-            </Suspense>
-            <span className="absolute bottom-3 left-3 z-[400] rounded bg-surface px-2 py-1 text-xs">
-              ■ FreshMark HQ{" "}
-              <span className="ml-2 text-success">● On route</span>
-              <span className="ml-2 text-danger">● Delayed</span>
-            </span>
-          </div>
-          <div className="px-4">
+            <div className="grid grid-cols-4 border-b-[0.5px] border-edge bg-ivory/40 px-4 py-2 text-xs uppercase tracking-wider text-muted">
+              <span>Vehicle</span>
+              <span>Supplier</span>
+              <span>Route progress</span>
+              <span className="text-right">ETA · CAT</span>
+            </div>
             {nearest.map((t) => (
               <Link
                 key={t.id}
-                to="/tracking"
+                to={`/tracking?truck=${t.id}`}
                 onClick={() => s.setSelectedTruck(t.id)}
-                className="grid grid-cols-[1fr_1fr_90px] items-center gap-4 border-b-[0.5px] border-edge py-3"
+                className="grid grid-cols-4 items-center gap-3 border-b-[0.5px] border-edge px-4 py-3 hover:bg-ivory/50"
               >
-                <div className="flex items-center gap-2">
-                  <StatusDot status={t.delayed ? "danger" : "success"} />
-                  <div>
-                    <span className="font-medium">{t.id}</span>
-                    <p className="mt-1 text-xs text-muted">
-                      {t.name} ·{" "}
-                      {
-                        s.products.filter((p) => p.supplierId === t.supplierId)
-                          .length
-                      }{" "}
-                      product lines
-                    </p>
-                  </div>
-                </div>
+                <span className="flex items-center gap-2">
+                  <StatusDot
+                    status={
+                      t.delayed
+                        ? "danger"
+                        : t.progress >= 100
+                          ? "warning"
+                          : "success"
+                    }
+                  />
+                  <span className="font-medium">{t.id}</span>
+                </span>
+                <span className="truncate text-sm text-muted">{t.name}</span>
                 <div>
-                  <ProgressBar value={t.progress} />
-                  <p className="mt-1 text-xs text-muted">
-                    {t.progress}% of route
-                  </p>
+                  <ProgressBar
+                    value={t.progress}
+                    color={t.delayed ? "warning" : "success"}
+                  />
+                  <span className="mt-1 block text-xs text-muted">
+                    {Math.round(t.progress)}%
+                  </span>
                 </div>
-                <span className="text-right">
-                  {t.eta} <span className="text-xs text-muted">CAT</span>
+                <span className="text-right text-sm">
+                  {t.progress >= 100 ? "Arrived" : t.eta}
                 </span>
               </Link>
             ))}
-          </div>
-          <Link
-            to="/tracking"
-            className="flex items-center justify-center gap-2 py-4 text-sm text-gold"
-          >
-            View all {s.trucks.length} trucks{" "}
-            <ArrowRight aria-hidden size={12} />
-          </Link>
-        </section>
-        <div className="space-y-4">
-          <section className="panel">
-            <div className="flex justify-between p-4">
-              <h3>Stock needs attention</h3>
-              <Badge variant="danger">{alerts.length} alerts</Badge>
-            </div>
-            <div className="max-h-[255px] overflow-auto px-4">
-              {alerts.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between border-b-[0.5px] border-edge py-2.5"
+          </section>
+          <section className="panel p-4">
+            <header className="mb-4 flex items-center justify-between">
+              <div>
+                <h3>Purchasing activity</h3>
+                <p className="mt-1 text-xs text-muted">
+                  {money(orders.reduce((n, o) => n + o.total, 0))} placed across{" "}
+                  {orders.length} orders
+                </p>
+              </div>
+              <select
+                aria-label="Dashboard chart metric"
+                value={chartMode}
+                onChange={(e) =>
+                  setChartMode(e.target.value as "orders" | "spend")
+                }
+                className="!py-1.5 !text-sm"
+              >
+                <option value="orders">Order volume</option>
+                <option value="spend">Purchase value</option>
+              </select>
+            </header>
+            <div className="h-[175px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={chart}
+                  margin={{ top: 5, right: 10, left: -25, bottom: 0 }}
                 >
-                  <div>
-                    <p>{p.name}</p>
-                    <p className="mt-1 text-xs text-muted">{p.supplierName}</p>
+                  <defs>
+                    <linearGradient id="orderFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#C9933A" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="#C9933A" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="#E2DDD6"
+                    strokeDasharray="3 5"
+                  />
+                  <XAxis
+                    dataKey="day"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 9, fill: "#6B6B7B" }}
+                    minTickGap={20}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 9, fill: "#6B6B7B" }}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    formatter={(value: number) =>
+                      chartMode === "spend" ? money(value) : value
+                    }
+                  />
+                  <Area
+                    dataKey={chartMode}
+                    name={chartMode === "spend" ? "Purchase value" : "Orders"}
+                    type="monotone"
+                    stroke="#C9933A"
+                    strokeWidth={2}
+                    fill="url(#orderFill)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+          <section className="panel p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <h3>Supplier network</h3>
+              <span className="text-xs text-muted">
+                {s.suppliers.length} connected partners
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {s.suppliers.map((p) => (
+                <Link
+                  key={p.id}
+                  to="/catalogue"
+                  onClick={() => s.setActiveSupplier(p.id)}
+                  className="flex items-center gap-2.5 rounded border-[0.5px] border-edge p-3 hover:bg-ivory"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-ivory text-sm text-gold">
+                    {p.name
+                      .split(" ")
+                      .map((w) => w[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {p.name.replace(" Ltd", "")}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {p.trucks.length} trucks · {p.category}
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <Badge variant={p.stock ? "warning" : "danger"}>
-                      {stockStatus(p)}
-                    </Badge>
-                    <p className="mt-1 text-xs text-muted">{p.stock} units</p>
-                  </div>
-                </div>
+                  <StatusDot status={supplierStatus(p, s.invoices)} />
+                </Link>
               ))}
             </div>
-            <Link to="/inventory" className="block p-4 text-sm text-gold">
-              Go to inventory →
-            </Link>
+          </section>
+        </div>
+        <div className="space-y-4">
+          <MonitorPanel compact />
+          <ActivityFeed />
+          <section className="panel flex items-center gap-4 p-4">
+            <div className="relative h-24 w-24 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[{ value: health }, { value: 100 - health }]}
+                    dataKey="value"
+                    innerRadius={34}
+                    outerRadius={42}
+                    startAngle={90}
+                    endAngle={-270}
+                    stroke="none"
+                  >
+                    <Cell fill="#2D7A4F" />
+                    <Cell fill="#E2DDD6" />
+                  </Pie>
+                  <text
+                    x="50%"
+                    y="50%"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="18"
+                    fill="#1C1C2E"
+                  >
+                    {health}%
+                  </text>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div>
+              <h3>Shelf health</h3>
+              <p className="mt-1 text-sm leading-5 text-muted">
+                {s.products.length - stockIssues.length} of {s.products.length}{" "}
+                products above reorder levels.
+              </p>
+              <Link
+                to="/inventory"
+                className="mt-2 inline-flex items-center gap-1 text-sm text-gold"
+              >
+                Review stock
+                <ArrowUpRight aria-hidden size={11} />
+              </Link>
+            </div>
           </section>
           {urgent && (
-            <section className="rounded-xl bg-noir p-4 text-white">
+            <section className="rounded-xl bg-gradient-to-br from-noir to-[#303045] p-5 text-white">
               <div className="flex items-center justify-between">
-                <span className="eyebrow text-gold">
-                  PAYMENT REQUIRES ATTENTION
+                <span className="dashboard-kicker !text-gold">
+                  Next financial action
                 </span>
-                <CreditCard aria-hidden className="text-gold" size={15} />
+                <CreditCard aria-hidden size={16} className="text-gold" />
               </div>
-              <div className="mt-4 flex justify-between">
-                <div>
-                  <p className="text-xs text-white/40">
-                    {urgent.id} ·{" "}
-                    {s.suppliers.find((p) => p.id === urgent.supplierId)?.name}
-                  </p>
-                  <p className="mt-2 text-2xl">{money(urgent.amount)}</p>
-                </div>
-                <Badge variant="danger">
+              <p className="mt-4 text-xs text-white/45">
+                {urgent.id} ·{" "}
+                {s.suppliers.find((p) => p.id === urgent.supplierId)?.name}
+              </p>
+              <div className="mb-4 mt-2 flex items-center justify-between">
+                <p className="text-[28px]">
+                  {money(invoiceBalance(urgent).total)}
+                </p>
+                <Badge variant={daysLeft(urgent) < 0 ? "danger" : "warning"}>
                   {Math.abs(daysLeft(urgent))} days{" "}
                   {daysLeft(urgent) < 0 ? "overdue" : "left"}
                 </Badge>
               </div>
-              <div className="mt-4 flex gap-2">
+              <div className="flex gap-2">
                 {s.user?.role !== "Operations" && (
                   <button
                     aria-label="Pay urgent invoice"
@@ -296,42 +463,16 @@ export default function Dashboard() {
                   to={`/credits?invoice=${urgent.id}`}
                   className="rounded border-[0.5px] border-white/20 px-4 py-2 text-white/60"
                 >
-                  View details
+                  Review invoice
                 </Link>
               </div>
             </section>
           )}
         </div>
       </div>
-      <section className="panel mt-4 p-4">
-        <div className="flex justify-between">
-          <h3>Order activity</h3>
-          <span className="text-xs text-muted">Last 7 days</span>
-        </div>
-        <div className="h-28">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chart}>
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 9, fill: "#6B6B7B" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="orders"
-                stroke="#C9933A"
-                fill="#C9933A"
-                fillOpacity={0.08}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
       {pay && (
         <PaymentModal mode="pay" invoiceId={pay} onClose={() => setPay(null)} />
       )}
-    </>
+    </div>
   );
 }

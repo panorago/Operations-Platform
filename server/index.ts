@@ -1,3 +1,8 @@
+import {
+  monitorSnapshot,
+  monitorFingerprint,
+  analyseOperations,
+} from "./monitor";
 import express from "express";
 import { processNotifications, notificationConfig } from "./notifications";
 import { DatabaseSync } from "node:sqlite";
@@ -28,6 +33,68 @@ const read = () =>
     (db.prepare("SELECT data FROM state WHERE id=1").get() as { data: string })
       .data,
   ) as AppState;
+db.exec(
+  "CREATE TABLE IF NOT EXISTS monitor (id INTEGER PRIMARY KEY,data TEXT NOT NULL,fingerprint TEXT NOT NULL)",
+);
+const readMonitor = () => {
+  const row = db
+    .prepare("SELECT data,fingerprint FROM monitor WHERE id=1")
+    .get() as { data: string; fingerprint: string } | undefined;
+  return row
+    ? {
+        snapshot: JSON.parse(row.data) as import("../src/types").MonitorState,
+        fingerprint: row.fingerprint,
+      }
+    : null;
+};
+const writeMonitor = (
+  snapshot: import("../src/types").MonitorState,
+  fingerprint: string,
+) =>
+  db
+    .prepare(
+      "INSERT INTO monitor VALUES (1,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,fingerprint=excluded.fingerprint",
+    )
+    .run(JSON.stringify(snapshot), fingerprint);
+let analysisBusy = false;
+let lastAnalysisAttempt = 0;
+async function updateMonitor(force = false) {
+  const state = read();
+  const cached = readMonitor();
+  const fingerprint = monitorFingerprint(state);
+  const interval = (state.settings.monitoring?.intervalMinutes || 5) * 60000;
+  if (
+    !process.env.ANTHROPIC_API_KEY ||
+    (!force && state.settings.monitoring?.enabled === false)
+  )
+    return monitorSnapshot(state, cached?.snapshot);
+  if (analysisBusy) throw Error("Analysis is already running.");
+  if (Date.now() - lastAnalysisAttempt < (force ? 60000 : interval))
+    return monitorSnapshot(state, cached?.snapshot);
+  if (
+    !force &&
+    cached?.fingerprint === fingerprint &&
+    cached.snapshot.status !== "error"
+  )
+    return monitorSnapshot(state, cached.snapshot);
+  analysisBusy = true;
+  lastAnalysisAttempt = Date.now();
+  try {
+    const result = await analyseOperations(state);
+    writeMonitor(result, fingerprint);
+    return result;
+  } catch (e) {
+    const snapshot = {
+      ...monitorSnapshot(state, cached?.snapshot),
+      status: "error" as const,
+      error: e instanceof Error ? e.message : "AI analysis failed",
+    };
+    writeMonitor(snapshot, cached?.fingerprint || "");
+    throw e;
+  } finally {
+    analysisBusy = false;
+  }
+}
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "256kb" }));
@@ -107,12 +174,10 @@ app.post("/api/setup", (req, res) => {
     return;
   }
   if (process.env.NODE_ENV === "production" && !process.env.SETUP_TOKEN) {
-    res
-      .status(503)
-      .json({
-        error:
-          "Initial setup is locked. Set SETUP_TOKEN in your hosting environment.",
-      });
+    res.status(503).json({
+      error:
+        "Initial setup is locked. Set SETUP_TOKEN in your hosting environment.",
+    });
     return;
   }
   if (process.env.SETUP_TOKEN) {
@@ -124,12 +189,10 @@ app.post("/api/setup", (req, res) => {
         Buffer.from(digest(process.env.SETUP_TOKEN)),
       )
     ) {
-      res
-        .status(403)
-        .json({
-          error:
-            "Invalid setup key. Use SETUP_TOKEN from your hosting environment.",
-        });
+      res.status(403).json({
+        error:
+          "Invalid setup key. Use SETUP_TOKEN from your hosting environment.",
+      });
       return;
     }
   }
@@ -197,7 +260,41 @@ app.post("/api/logout", (req, res) => {
   res.json({ ok: true });
 });
 app.get("/api/state", (_req, res) => res.json(read()));
+app.get("/api/monitor", (_req, res) =>
+  res.json({
+    ...monitorSnapshot(read(), readMonitor()?.snapshot),
+    ...(analysisBusy ? { status: "analyzing" } : {}),
+  }),
+);
+app.post("/api/monitor/analyze", async (_req, res, next) => {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.status(503).json({
+        error:
+          "AI is not connected. Configure ANTHROPIC_API_KEY securely on the server.",
+      });
+      return;
+    }
+    res.json(await updateMonitor(true));
+  } catch (e) {
+    next(e);
+  }
+});
+
 const settingsSchema = z.object({
+  creditPolicy: z
+    .object({
+      enabled: z.boolean(),
+      annualRate: z.number().min(0).max(100),
+      graceDays: z.number().int().min(0).max(365),
+    })
+    .optional(),
+  monitoring: z
+    .object({
+      enabled: z.boolean(),
+      intervalMinutes: z.number().int().min(5).max(60),
+    })
+    .optional(),
   company: z.object({
     name: z.string().min(1).max(150),
     address: z.string().max(300),
@@ -222,7 +319,7 @@ const commandSchema = z.discriminatedUnion("type", [
       .array(
         z.object({
           productId: z.string(),
-          qty: z.number().int().positive().max(10000),
+          qty: z.number().int().positive().max(1000000),
           credit: z.boolean(),
         }),
       )
@@ -231,10 +328,16 @@ const commandSchema = z.discriminatedUnion("type", [
     mode: z.enum(["pay", "credit"]),
     method: z.enum(["EcoCash", "Bank Transfer", "Cash on Delivery"]),
     terms: z.union([z.literal(7), z.literal(15), z.literal(30)]),
+    quotedAnnualRate: z.number().min(0).max(100).optional(),
+    quotedGraceDays: z.number().int().min(0).max(365).optional(),
   }),
   z.object({
     type: z.literal("payInvoice"),
     id: z.string(),
+    paymentDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
     method: z.enum(["EcoCash", "Bank Transfer", "Cash on Delivery"]),
   }),
   z.object({ type: z.literal("readAlert"), id: z.string() }),
@@ -430,6 +533,10 @@ const timer = setInterval(async () => {
     processingNotifications = false;
   }
 }, 60000);
+const monitorTimer = setInterval(() => {
+  void updateMonitor().catch(() => undefined);
+}, 60000);
+monitorTimer.unref();
 timer.unref();
 app.listen(Number(process.env.PORT || 3001), "0.0.0.0", () =>
   console.log(`VENDA API listening on ${process.env.PORT || 3001}`),

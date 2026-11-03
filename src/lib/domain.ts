@@ -1,4 +1,5 @@
-import { addDays, format, parseISO } from "date-fns";
+import { invoiceBalance, defaultCreditPolicy } from "./credit";
+import { addDays, format, parseISO, isValid } from "date-fns";
 const randomUUID = () => globalThis.crypto.randomUUID();
 import type { AppState, Command, Role } from "../types";
 import { reminderSchedule } from "../data/invoices";
@@ -11,6 +12,14 @@ export function applyCommand(
 ): AppState {
   const s = structuredClone(input);
   const stamp = now.toISOString();
+  const record = (
+    event: Omit<import("../types").ActivityEvent, "id" | "timestamp">,
+  ) => {
+    s.activity = [
+      { ...event, id: randomUUID(), timestamp: stamp },
+      ...(s.activity || []),
+    ].slice(0, 100);
+  };
   if (["saveSettings", "saveSupplier"].includes(c.type) && role !== "Admin")
     throw Error("Administrator access required");
   if (["checkout", "orderStatus"].includes(c.type) && role === "Finance")
@@ -21,6 +30,16 @@ export function applyCommand(
     if (!c.items.length || c.items.length > 100)
       throw Error("Add products to your order");
     if (![7, 15, 30].includes(c.terms)) throw Error("Invalid credit terms");
+    const policy = s.settings.creditPolicy || defaultCreditPolicy;
+    if (
+      c.mode === "credit" &&
+      policy.enabled &&
+      (c.quotedAnnualRate !== policy.annualRate ||
+        c.quotedGraceDays !== policy.graceDays)
+    )
+      throw Error(
+        "Review and accept the current interest terms before placing this credit order.",
+      );
     if (!["EcoCash", "Bank Transfer", "Cash on Delivery"].includes(c.method))
       throw Error("Invalid payment method");
     const grouped = new Map<
@@ -34,7 +53,7 @@ export function applyCommand(
         !p ||
         !Number.isSafeInteger(item.qty) ||
         item.qty < 1 ||
-        item.qty > 10000 ||
+        item.qty > 1000000 ||
         seen.has(item.productId)
       )
         throw Error("Invalid order item");
@@ -67,8 +86,9 @@ export function applyCommand(
         c.mode === "credit"
           ? `INV-${randomUUID().slice(0, 8).toUpperCase()}`
           : undefined;
+      const orderId = `ORD-${randomUUID().slice(0, 8).toUpperCase()}`;
       s.orders.unshift({
-        id: `ORD-${randomUUID().slice(0, 8).toUpperCase()}`,
+        id: orderId,
         invoiceId,
         supplierId,
         items: g.items,
@@ -88,15 +108,51 @@ export function applyCommand(
           paid: false,
           reminders: reminderSchedule(s.settings.thresholds),
           overduePing: false,
+          ...(s.settings.creditPolicy?.enabled
+            ? {
+                credit: {
+                  annualRate: s.settings.creditPolicy.annualRate,
+                  graceDays: s.settings.creditPolicy.graceDays,
+                  issuedDate: today(now),
+                },
+              }
+            : {}),
         });
+      record({
+        type: "order",
+        title: `Order placed · ${supplier.name}`,
+        description: `${g.items.reduce((n, i) => n + i.qty, 0)} units · ${c.mode === "credit" ? "Net " + c.terms + " credit" : "Cash settlement"}`,
+        entityId: orderId,
+        amount: total,
+      });
     }
   }
   if (c.type === "payInvoice") {
     const i = s.invoices.find((i) => i.id === c.id);
     if (!i) throw Error("Invoice not found");
     if (i.paid) throw Error("Invoice already paid");
+    const paymentDate = c.paymentDate || today(now);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(paymentDate) ||
+      !isValid(parseISO(paymentDate)) ||
+      format(parseISO(paymentDate), "yyyy-MM-dd") !== paymentDate ||
+      paymentDate > today(now)
+    )
+      throw Error("Payment date must be today or an earlier valid date.");
+    const balance = invoiceBalance(i, paymentDate);
+    i.paidAmount = balance.total;
     i.paid = true;
-    i.paidAt = stamp;
+    i.paidAt = `${paymentDate}T12:00:00+02:00`;
+    record({
+      type: "payment",
+      title: `Payment recorded · ${i.id}`,
+      description:
+        balance.interest > 0
+          ? `Principal ${i.amount.toFixed(2)} + interest ${balance.interest.toFixed(2)}`
+          : "Invoice settled. Pending reminders cleared.",
+      entityId: i.id,
+      amount: balance.total,
+    });
     i.paymentMethod = c.method;
     i.overduePing = false;
     i.reminders.forEach((r) => {
@@ -114,7 +170,19 @@ export function applyCommand(
     if (a) a.read = true;
   }
   if (c.type === "readAll") s.alerts.forEach((a) => (a.read = true));
-  if (c.type === "saveSettings") s.settings = c.settings;
+  if (c.type === "saveSettings") {
+    const p = c.settings.creditPolicy || defaultCreditPolicy;
+    if (
+      !Number.isFinite(p.annualRate) ||
+      p.annualRate < 0 ||
+      p.annualRate > 100 ||
+      !Number.isSafeInteger(p.graceDays) ||
+      p.graceDays < 0 ||
+      p.graceDays > 365
+    )
+      throw Error("Credit policy rate or grace period is invalid");
+    s.settings = c.settings;
+  }
   if (c.type === "saveSupplier") {
     const existing = s.suppliers.find((p) => p.id === c.supplier.id);
     if (existing)
@@ -156,6 +224,16 @@ export function applyCommand(
       }
     }
     o.status = c.status;
+    record({
+      type: c.status === "Delivered" ? "delivery" : "order",
+      title: `${o.id} · ${c.status}`,
+      description:
+        c.status === "Delivered"
+          ? "Delivery received and inventory replenished."
+          : `Supplier order moved to ${c.status.toLowerCase()}.`,
+      entityId: o.id,
+      amount: o.total,
+    });
   }
   if (c.type === "triggerReminders")
     for (const i of s.invoices.filter((i) => !i.paid)) {

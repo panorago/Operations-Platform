@@ -1,3 +1,4 @@
+import { scanOperations } from "./monitoring";
 import {
   AxiosError,
   AxiosHeaders,
@@ -10,7 +11,7 @@ import type { AppState, Command, User } from "../types";
 const key = "venda-pages-preview-v1";
 const user: User = {
   id: "preview-admin",
-  name: "Tariro Moyo",
+  name: "Dylan",
   email: "preview@freshmark.example",
   role: "Admin",
   status: "Active",
@@ -32,6 +33,9 @@ function load(): SavedPreview {
       !Array.isArray(parsed.users)
     )
       return fresh();
+    parsed.users = parsed.users.map((u) =>
+      u.id === user.id ? { ...u, name: user.name } : u,
+    );
     return parsed;
   } catch {
     return fresh();
@@ -63,6 +67,20 @@ export async function previewAdapter(
       return response({ needsSetup: false, setupProtected: false, user });
     if (config.url === "/health") return response({ status: "preview" });
     if (config.url === "/state") return response(saved.state);
+    if (config.url === "/monitor")
+      return response({
+        providerReady: false,
+        providerConfigured: false,
+        automatic: false,
+        status: "local",
+        summary: null,
+        checkedAt: new Date().toISOString(),
+        issues: scanOperations(saved.state),
+      });
+    if (config.url === "/monitor/analyze")
+      throw Error(
+        "Live AI needs the connected server workspace. Local monitoring remains active.",
+      );
     if (config.url === "/commands") {
       const command = body as unknown as Command;
       if (!command || typeof command.type !== "string")

@@ -94,7 +94,28 @@ export const seed: AppState = {
       route: "/credits",
     },
   ] as Alert[],
+  activity: [
+    {
+      id: "seed-delivery",
+      type: "delivery",
+      title: "Supplier fleet is on the move",
+      description:
+        "Eight delivery manifests synced for the Harare distribution network.",
+      timestamp,
+      entityId: "ZW-01",
+    },
+    {
+      id: "seed-stock",
+      type: "system",
+      title: "Stock levels reconciled",
+      description: "29 products checked across all six suppliers.",
+      timestamp,
+      entityId: "inventory",
+    },
+  ],
   settings: {
+    creditPolicy: { enabled: false, annualRate: 0, graceDays: 0 },
+    monitoring: { enabled: true, intervalMinutes: 5 },
     company: {
       name: "FreshMark Retail Zimbabwe",
       address: "Borrowdale, Harare, Zimbabwe",

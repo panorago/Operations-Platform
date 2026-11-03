@@ -1,12 +1,19 @@
+import { advanceFleet } from "../lib/fleet";
+import { trucks as seedTrucks } from "../data/trucks";
+import { isPreview } from "../lib/runtime";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import toast from "react-hot-toast";
 import { api, errorMessage } from "../lib/api";
 import { seed } from "../data";
 import { daysLeft, orderTotals } from "../lib/utils";
-import type { AppState, Store, CartStore, User } from "../types";
+import type { AppState, Store, CartStore, User, MonitorState } from "../types";
 let simulation: ReturnType<typeof setInterval> | undefined;
+const arrivals = new Map<string, number>();
+let playedTicks = 0;
 let references = 0;
+let tick = 0;
+let demoBusy = false;
 export const useAppStore = create<Store>((set, get) => ({
   ...structuredClone(seed),
   loaded: false,
@@ -19,6 +26,39 @@ export const useAppStore = create<Store>((set, get) => ({
   aiSuggestion: null,
   aiHidden: false,
   users: [],
+  simulationRunning: true,
+  simulationSpeed: 1,
+  autoTransactions: false,
+  demoOrderId: null,
+  monitor: null,
+  monitorBusy: false,
+  setSimulationRunning: (simulationRunning) => set({ simulationRunning }),
+  setSimulationSpeed: (simulationSpeed) => set({ simulationSpeed }),
+  setAutoTransactions: (autoTransactions) =>
+    set({ autoTransactions: isPreview && autoTransactions }),
+  resetFleet: () => {
+    arrivals.clear();
+    set({ trucks: structuredClone(seedTrucks) });
+  },
+  refreshMonitor: async () => {
+    try {
+      const { data } = await api.get<MonitorState>("/monitor");
+      set({ monitor: data });
+    } catch {
+      return;
+    }
+  },
+  runAnalysis: async () => {
+    set({ monitorBusy: true });
+    try {
+      const { data } = await api.post<MonitorState>("/monitor/analyze");
+      set({ monitor: data });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      set({ monitorBusy: false });
+    }
+  },
   checkAuth: async () => {
     try {
       const { data } = await api.get<{
@@ -35,12 +75,17 @@ export const useAppStore = create<Store>((set, get) => ({
   },
   refresh: async () => {
     const { data } = await api.get<AppState>("/state");
-    set({ ...data, loaded: true });
+    set({
+      ...data,
+      trucks: get().loaded ? get().trucks : data.trucks,
+      loaded: true,
+    });
   },
   command: async (c) => {
     try {
       const { data } = await api.post<AppState>("/commands", c);
-      set(data);
+      set({ ...data, trucks: get().trucks });
+      void get().refreshMonitor();
       return true;
     } catch (e) {
       toast.error(errorMessage(e));
@@ -75,17 +120,80 @@ export const useAppStore = create<Store>((set, get) => ({
   startSimulation: () => {
     references++;
     if (!simulation)
-      simulation = setInterval(
-        () =>
-          set((s) => ({
-            trucks: s.trucks.map((t) => ({
-              ...t,
-              lat: t.lat + (Math.random() - 0.5) * 0.002,
-              lng: t.lng + (Math.random() - 0.5) * 0.002,
-            })),
-          })),
-        30000,
-      );
+      simulation = setInterval(() => {
+        tick++;
+        const current = get();
+        if (current.simulationRunning) {
+          playedTicks++;
+          const advanced = advanceFleet(
+            current.trucks,
+            1,
+            current.simulationSpeed,
+          ).map((t) => {
+            if (t.progress < 100) {
+              arrivals.delete(t.id);
+              return t;
+            }
+            const arrival = arrivals.get(t.id);
+            if (arrival === undefined) {
+              arrivals.set(t.id, playedTicks);
+              return t;
+            }
+            if (playedTicks - arrival >= 20) {
+              arrivals.delete(t.id);
+              return structuredClone(
+                seedTrucks.find((original) => original.id === t.id) || t,
+              );
+            }
+            return t;
+          });
+          set({ trucks: advanced });
+        }
+        if (
+          isPreview &&
+          current.autoTransactions &&
+          tick % 8 === 0 &&
+          !demoBusy
+        ) {
+          demoBusy = true;
+          void (async () => {
+            try {
+              const id = get().demoOrderId;
+              const order = get().orders.find((o) => o.id === id);
+              if (
+                !order ||
+                order.status === "Delivered" ||
+                order.status === "Cancelled"
+              ) {
+                const product =
+                  get().products[Math.floor(tick / 8) % get().products.length];
+                const ok = await get().command({
+                  type: "checkout",
+                  items: [{ productId: product.id, qty: 24, credit: false }],
+                  mode: "pay",
+                  method: "Cash on Delivery",
+                  terms: 30,
+                });
+                if (ok) set({ demoOrderId: get().orders[0].id });
+              } else {
+                const next =
+                  order.status === "Pending"
+                    ? "Processing"
+                    : order.status === "Processing"
+                      ? "Dispatched"
+                      : "Delivered";
+                await get().command({
+                  type: "orderStatus",
+                  id: order.id,
+                  status: next,
+                });
+              }
+            } finally {
+              demoBusy = false;
+            }
+          })();
+        }
+      }, 1000);
     return () => {
       references--;
       if (references === 0 && simulation) {
@@ -105,7 +213,11 @@ export const useCartStore = create<CartStore>()(
           items: s.items.some((i) => i.productId === productId)
             ? s.items.map((i) =>
                 i.productId === productId
-                  ? { ...i, qty: i.qty + qty, credit: i.credit || credit }
+                  ? {
+                      ...i,
+                      qty: Math.min(1000000, i.qty + qty),
+                      credit: i.credit || credit,
+                    }
                   : i,
               )
             : [...s.items, { productId, qty, credit }],
@@ -120,7 +232,9 @@ export const useCartStore = create<CartStore>()(
             qty <= 0
               ? s.items.filter((i) => i.productId !== id)
               : s.items.map((i) =>
-                  i.productId === id ? { ...i, qty: Math.min(qty, 10000) } : i,
+                  i.productId === id
+                    ? { ...i, qty: Math.min(qty, 1000000) }
+                    : i,
                 ),
         }));
       },

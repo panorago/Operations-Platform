@@ -1,3 +1,4 @@
+import { invoiceBalance } from "../lib/credit";
 import { addDays, subDays, parseISO } from "date-fns";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -48,7 +49,7 @@ export default function Credits() {
   const receipt = (i: Invoice) =>
     download(
       `${i.id}-receipt.txt`,
-      `FRESHMARK RETAIL ZIMBABWE\nPayment record — manual settlement\nInvoice: ${i.id}\nSupplier: ${s.suppliers.find((p) => p.id === i.supplierId)?.name}\nAmount: ${money(i.amount)}\nMethod: ${i.paymentMethod || "Historical record"}\nRecorded: ${date(i.paidAt || i.dueDate)}\nThis record is not bank settlement confirmation.`,
+      `FRESHMARK RETAIL ZIMBABWE\nPayment record — manual settlement\nInvoice: ${i.id}\nSupplier: ${s.suppliers.find((p) => p.id === i.supplierId)?.name}\nAmount: ${money(invoiceBalance(i).total)}\nMethod: ${i.paymentMethod || "Historical record"}\nRecorded: ${date(i.paidAt || i.dueDate)}\nThis record is not bank settlement confirmation.`,
     );
   return (
     <>
@@ -94,7 +95,7 @@ export default function Credits() {
               .filter(
                 (i) => !i.paid && i.dueDate.startsWith(today().slice(0, 7)),
               )
-              .reduce((n, i) => n + i.amount, 0),
+              .reduce((n, i) => n + invoiceBalance(i).total, 0),
           )}
           sub="Based on invoice due dates"
           icon={<Calendar aria-hidden size={15} />}
@@ -140,8 +141,8 @@ export default function Credits() {
             {
               key: "amount",
               label: "Amount",
-              sortValue: (i) => i.amount,
-              render: (i) => money(i.amount),
+              sortValue: (i) => invoiceBalance(i).total,
+              render: (i) => money(invoiceBalance(i).total),
             },
             {
               key: "due",
@@ -219,7 +220,7 @@ export default function Credits() {
               </Button>
             ) : (
               <Button className="w-full" onClick={() => setPay(selected.id)}>
-                Pay {money(selected.amount)} — Clear reminders
+                Pay {money(invoiceBalance(selected).total)} — Clear reminders
               </Button>
             )
           }
@@ -232,8 +233,18 @@ export default function Credits() {
               <Badge variant={tone(selected)}>{invoiceStatus(selected)}</Badge>
             </div>
             <div className="rounded-xl bg-ivory p-4">
-              <p className="text-2xl">{money(selected.amount)}</p>
-              <p className="mt-2 text-muted">Due {date(selected.dueDate)}</p>
+              <p className="text-2xl">
+                {money(invoiceBalance(selected).total)}
+              </p>
+              <p className="mt-2 text-muted">
+                Due {date(selected.dueDate)}
+                {selected.credit && (
+                  <span className="ml-2 text-gold">
+                    · {selected.credit.annualRate}% APR ·{" "}
+                    {money(invoiceBalance(selected).interest)} interest accrued
+                  </span>
+                )}
+              </p>
             </div>
             <h3>Reminder escalation timeline</h3>
             {selected.reminders.map((r, i) => (

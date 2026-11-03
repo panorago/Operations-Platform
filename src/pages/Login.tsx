@@ -11,7 +11,7 @@ import { Button } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
 export default function Login() {
   const s = useAppStore();
-  const [name, setName] = useState(""),
+  const [name, setName] = useState("Dylan"),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [setupToken, setSetupToken] = useState(""),

@@ -1,3 +1,4 @@
+import Select from "../components/ui/Select";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -45,7 +46,6 @@ import {
 import { invoiceBalance } from "../lib/credit";
 import PaymentModal from "../components/modules/PaymentModal";
 import MonitorPanel from "../components/modules/MonitorPanel";
-import SimulationControls from "../components/modules/SimulationControls";
 import ActivityFeed from "../components/modules/ActivityFeed";
 const TruckMap = lazy(() => import("../components/modules/TruckMap"));
 export default function Dashboard() {
@@ -175,7 +175,7 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <SimulationControls transactions />
+        <span className="text-sm text-muted">Overview of your operation</span>
         <div className="flex items-center rounded border-[0.5px] border-edge bg-surface p-0.5">
           {[7, 30].map((n) => (
             <button
@@ -220,7 +220,7 @@ export default function Dashboard() {
               <div>
                 <h3>Distribution network</h3>
                 <p className="mt-1 text-xs text-muted">
-                  Harare · interactive fleet simulation
+                  Harare distribution network
                 </p>
               </div>
               <Link
@@ -286,7 +286,7 @@ export default function Dashboard() {
                   {orders.length} orders
                 </p>
               </div>
-              <select
+              <Select
                 aria-label="Dashboard chart metric"
                 value={chartMode}
                 onChange={(e) =>
@@ -296,7 +296,7 @@ export default function Dashboard() {
               >
                 <option value="orders">Order volume</option>
                 <option value="spend">Purchase value</option>
-              </select>
+              </Select>
             </header>
             <div className="h-[175px]">
               <ResponsiveContainer width="100%" height="100%">

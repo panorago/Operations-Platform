@@ -100,7 +100,7 @@ export default function ActivityFeed() {
         {!rows.length && (
           <EmptyState
             title="No transactions in this view"
-            description="Place an order or run the preview transaction demo."
+            description="Place an order or record a payment to see activity here."
           />
         )}
       </div>

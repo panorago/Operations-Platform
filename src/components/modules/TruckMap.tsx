@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState, useRef } from "react";
 import {
   MapContainer,
@@ -8,7 +9,14 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { LocateFixed, Navigation, Plus, Minus } from "lucide-react";
+import {
+  LocateFixed,
+  Navigation,
+  Plus,
+  Minus,
+  Pause,
+  Play,
+} from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { useAppStore } from "../../store";
 import { HQ } from "../../data/trucks";
@@ -73,6 +81,8 @@ function Controls({
   mini: boolean;
 }) {
   const map = useMap();
+  const running = useAppStore((s) => s.simulationRunning),
+    setRunning = useAppStore((s) => s.setSimulationRunning);
   const fit = () => {
     setFollow(false);
     return map.fitBounds(
@@ -83,8 +93,20 @@ function Controls({
       { padding: [40, 40], animate: true },
     );
   };
-  return (
+  return createPortal(
     <div className="absolute right-3 top-3 z-[450] flex flex-col gap-1.5">
+      <button
+        aria-label={running ? "Pause fleet updates" : "Resume fleet updates"}
+        title={running ? "Pause updates" : "Resume updates"}
+        className="map-control"
+        onClick={() => setRunning(!running)}
+      >
+        {running ? (
+          <Pause aria-hidden size={14} />
+        ) : (
+          <Play aria-hidden size={14} />
+        )}
+      </button>
       <button
         title="Fit all trucks"
         aria-label="Fit all trucks on map"
@@ -118,7 +140,8 @@ function Controls({
       >
         <Minus aria-hidden size={15} />
       </button>
-    </div>
+    </div>,
+    map.getContainer().parentElement!,
   );
 }
 export default function TruckMap({ mini = false }: { mini?: boolean }) {
@@ -213,7 +236,7 @@ export default function TruckMap({ mini = false }: { mini?: boolean }) {
                       : tr.eta + " ETA"}{" "}
                   · {Math.round(tr.progress)}% complete
                 </p>
-                <p className="text-xs text-muted">Simulated vehicle position</p>
+                <p className="text-xs text-muted">Vehicle position</p>
               </div>
             </Popup>
           </Marker>

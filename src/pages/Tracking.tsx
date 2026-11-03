@@ -1,4 +1,3 @@
-import SimulationControls from "../components/modules/SimulationControls";
 import { lazy, Suspense, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
@@ -37,11 +36,9 @@ export default function Tracking() {
           <p className="eyebrow mb-2">LOGISTICS & DISTRIBUTION</p>
           <h1>Live truck tracking</h1>
           <p className="subtext">
-            Animated playback across Harare · routes loop after a 20-second
-            arrival stop.
+            Supplier deliveries, routes and arrival estimates.
           </p>
         </div>
-        <SimulationControls />
       </div>
       <div className="panel grid h-[calc(100vh-200px)] min-h-[580px] grid-cols-[220px_1fr_240px] overflow-hidden">
         <section className="overflow-auto border-r-[0.5px] border-edge">

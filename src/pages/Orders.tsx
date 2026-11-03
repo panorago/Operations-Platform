@@ -1,3 +1,4 @@
+import Select from "../components/ui/Select";
 import { useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useAppStore } from "../store";
@@ -82,7 +83,7 @@ export default function Orders() {
             value={q}
             onChange={(e) => filter(() => setQ(e.target.value))}
           />
-          <select
+          <Select
             aria-label="Order supplier"
             value={supplier}
             onChange={(e) => filter(() => setSupplier(e.target.value))}
@@ -93,8 +94,8 @@ export default function Orders() {
                 {p.name}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             aria-label="Order status"
             value={status}
             onChange={(e) => filter(() => setStatus(e.target.value))}
@@ -103,7 +104,7 @@ export default function Orders() {
             {statuses.map((v) => (
               <option key={v}>{v}</option>
             ))}
-          </select>
+          </Select>
           <label className="flex items-center gap-2 text-sm text-muted">
             From
             <input

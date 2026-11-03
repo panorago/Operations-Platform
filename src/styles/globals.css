@@ -28,7 +28,7 @@
   button:disabled {
     @apply cursor-not-allowed opacity-40;
   }
-  :where(input:not([type="checkbox"]):not([type="range"])),
+  :where(input:not([type="checkbox"]):not([type="range"]):not([type="radio"])),
   select,
   textarea {
     @apply rounded border-[0.5px] border-edge bg-surface px-3 py-2 text-base outline-none focus:ring-1 focus:ring-gold;

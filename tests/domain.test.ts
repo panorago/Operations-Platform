@@ -284,3 +284,31 @@ test("credit due date starts from the Harare calendar day near UTC midnight", ()
   );
   assert.equal(state.invoices[0].dueDate, "2026-11-11");
 });
+
+test("payment records preserve external reference, bank and receipt ID without double settlement", () => {
+  const state = applyCommand(
+    seed,
+    {
+      type: "payInvoice",
+      id: "INV-0419",
+      method: "Bank Transfer",
+      paymentReference: " CBZ-0419-TEST ",
+      bankName: " CBZ Bank ",
+    },
+    "Finance",
+  );
+  const invoice = state.invoices.find((i) => i.id === "INV-0419")!;
+  assert.equal(invoice.paymentReference, "CBZ-0419-TEST");
+  assert.equal(invoice.bankName, "CBZ Bank");
+  assert.match(invoice.receiptId || "", /^PAY-[A-F0-9]{8}$/);
+  assert.equal(invoice.paidAmount, 3200);
+  assert.throws(
+    () =>
+      applyCommand(
+        state,
+        { type: "payInvoice", id: invoice.id, method: "Bank Transfer" },
+        "Finance",
+      ),
+    /already paid/,
+  );
+});

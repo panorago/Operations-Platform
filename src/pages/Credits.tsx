@@ -1,3 +1,4 @@
+import Select from "../components/ui/Select";
 import { invoiceBalance } from "../lib/credit";
 import { addDays, subDays, parseISO } from "date-fns";
 import { useState } from "react";
@@ -49,7 +50,7 @@ export default function Credits() {
   const receipt = (i: Invoice) =>
     download(
       `${i.id}-receipt.txt`,
-      `FRESHMARK RETAIL ZIMBABWE\nPayment record — manual settlement\nInvoice: ${i.id}\nSupplier: ${s.suppliers.find((p) => p.id === i.supplierId)?.name}\nAmount: ${money(invoiceBalance(i).total)}\nMethod: ${i.paymentMethod || "Historical record"}\nRecorded: ${date(i.paidAt || i.dueDate)}\nThis record is not bank settlement confirmation.`,
+      `FRESHMARK RETAIL ZIMBABWE\nPayment record — manual settlement\nInvoice: ${i.id}\nSupplier: ${s.suppliers.find((p) => p.id === i.supplierId)?.name}\nAmount: ${money(invoiceBalance(i).total)}\nReference: ${i.paymentReference || "Not supplied"}\nReceipt: ${i.receiptId || i.id}\nMethod: ${i.paymentMethod || "Historical record"}\nRecorded: ${date(i.paidAt || i.dueDate)}\nThis record is not bank settlement confirmation.`,
     );
   return (
     <>
@@ -110,7 +111,7 @@ export default function Credits() {
       <div className="panel mt-5">
         <div className="flex items-center justify-between p-4">
           <h3>Supplier invoices</h3>
-          <select
+          <Select
             aria-label="Invoice filter"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -118,7 +119,7 @@ export default function Credits() {
             <option value="outstanding">Outstanding</option>
             <option value="all">All invoices</option>
             <option value="paid">Paid</option>
-          </select>
+          </Select>
         </div>
         <DataTable<Invoice>
           data={s.invoices.filter(

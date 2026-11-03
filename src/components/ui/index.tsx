@@ -169,10 +169,16 @@ export function Modal({
   drawer?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.defaultPrevented) return;
+      if (e.key === "Escape") {
+        if (document.querySelector("[data-venda-select-content]")) return;
+        closeRef.current();
+      }
       if (e.key === "Tab") {
         const nodes = ref.current?.querySelectorAll<HTMLElement>(
           'button,input,select,textarea,a[href],[tabindex="0"]',
@@ -195,7 +201,7 @@ export function Modal({
       document.removeEventListener("keydown", handler);
       previous?.focus();
     };
-  }, [onClose]);
+  }, []);
   return (
     <div
       className={`fixed inset-0 z-[1000] flex bg-noir/30 ${drawer ? "justify-end" : "items-center justify-center"}`}

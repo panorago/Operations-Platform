@@ -1,6 +1,6 @@
 import { isPreview } from "../../lib/runtime";
 import { NavLink } from "react-router-dom";
-import { ShieldCheck, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAppStore, useCartStore } from "../../store";
 import { api } from "../../lib/api";
 import { links } from "./navigation";
@@ -56,13 +56,6 @@ export default function Sidebar() {
             </div>
           ))}
       </nav>
-      <div className="mx-4 mb-4 rounded-xl border-[0.5px] border-white/10 p-3">
-        <ShieldCheck aria-hidden className="mb-2 text-gold" size={17} />
-        <p className="text-sm text-white/70">One connected operation.</p>
-        <p className="mt-1 text-xs leading-5">
-          Built for better retail decisions.
-        </p>
-      </div>
       <div className="flex items-center gap-2 border-t-[0.5px] border-white/10 p-4">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/10 text-gold">
           {s.user?.name

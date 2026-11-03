@@ -1,4 +1,6 @@
+import { choose, completeOrder } from "./ui-helpers";
 import { test, expect } from "@playwright/test";
+import type { AppState } from "../src/types";
 import { randomUUID } from "node:crypto";
 test("all routes and purchasing, payment, stock and settings workflows", async ({
   page,
@@ -49,9 +51,7 @@ test("all routes and purchasing, payment, stock and settings workflows", async (
   await page
     .getByRole("button", { name: "Shop on credit", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: "Place $2.07 order", exact: true })
-    .click();
+  await completeOrder(page, "$2.07");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "Orders", exact: true }).click();
   await expect(
@@ -79,9 +79,30 @@ test("all routes and purchasing, payment, stock and settings workflows", async (
     .first()
     .getByRole("button", { name: "Pay now", exact: true })
     .click();
+  await choose(page, "Payment bank", "CBZ Bank");
+  await page
+    .getByLabel("Payment reference", { exact: true })
+    .fill("CBZ-E2E-001");
+  await page.getByLabel("Confirm payment received", { exact: true }).check();
+  await page
+    .getByRole("button", { name: "Review payment", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Record $2.07 payment", exact: true })
     .click();
+  await expect(
+    page.getByRole("heading", { name: "Payment recorded", exact: true }),
+  ).toBeVisible();
+  const recorded = (await (
+    await page.request.get("/api/state")
+  ).json()) as AppState;
+  const settled = recorded.invoices.find(
+    (i) => i.paymentReference === "CBZ-E2E-001",
+  );
+  expect(settled?.paid).toBe(true);
+  expect(settled?.bankName).toBe("CBZ Bank");
+  expect(settled?.receiptId).toMatch(/^PAY-/);
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "Live tracking", exact: true }).click();
   await page.getByRole("button", { name: "Track ZW-06", exact: true }).click();
@@ -118,7 +139,7 @@ test("all routes and purchasing, payment, stock and settings workflows", async (
     .fill("finance@freshmark.test");
   const pw = randomUUID();
   await page.getByLabel("New user password", { exact: true }).fill(pw);
-  await page.getByLabel("Role", { exact: true }).selectOption("Finance");
+  await choose(page, "Role", "Finance");
   await page.getByRole("button", { name: "Create user account" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const finance = await page.context().request.post("/api/login", {

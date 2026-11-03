@@ -98,6 +98,8 @@ export function applyCommand(
         paymentMode: c.mode,
         paymentMethod: c.method,
         terms: c.mode === "credit" ? c.terms : 0,
+        paymentReference: c.paymentReference?.trim(),
+        bankName: c.bankName?.trim(),
       });
       if (invoiceId)
         s.invoices.unshift({
@@ -141,6 +143,9 @@ export function applyCommand(
       throw Error("Payment date must be today or an earlier valid date.");
     const balance = invoiceBalance(i, paymentDate);
     i.paidAmount = balance.total;
+    i.paymentReference = c.paymentReference?.trim();
+    i.bankName = c.bankName?.trim();
+    i.receiptId = `PAY-${randomUUID().slice(0, 8).toUpperCase()}`;
     i.paid = true;
     i.paidAt = `${paymentDate}T12:00:00+02:00`;
     record({

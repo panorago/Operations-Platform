@@ -330,10 +330,14 @@ const commandSchema = z.discriminatedUnion("type", [
     terms: z.union([z.literal(7), z.literal(15), z.literal(30)]),
     quotedAnnualRate: z.number().min(0).max(100).optional(),
     quotedGraceDays: z.number().int().min(0).max(365).optional(),
+    paymentReference: z.string().trim().max(80).optional(),
+    bankName: z.string().trim().max(80).optional(),
   }),
   z.object({
     type: z.literal("payInvoice"),
     id: z.string(),
+    paymentReference: z.string().trim().max(80).optional(),
+    bankName: z.string().trim().max(80).optional(),
     paymentDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)

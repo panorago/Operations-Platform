@@ -8,7 +8,7 @@ VENDA is hosted directly on GitHub Pages. It does not require a separate hosting
 
 All eight routes work directly in the browser: dashboard, tracking, catalogue, orders, inventory, credits, alerts, and settings. Orders, stock receipts, invoice settlements, configured interest policies, notification preferences and company details are saved in that browser's local storage. Dylan is the device-workspace administrator identity. Existing browser data is retained across this update.
 
-This is a **single-device workspace**, not a shared authenticated service. Data is not synchronised between staff, devices or browsers. Device member entries are contact records, not secure login accounts. Clearing browser/site storage removes this local data. The initial supplier/product/invoice records are sample seeds. Fleet playback and the opt-in transaction demo are explicitly simulated; the demo does not send transactions to a production API. Reset sample data restores the seeds only after confirmation.
+This is a **single-device workspace**, not a shared authenticated service. Data is not synchronised between staff, devices or browsers. Device member entries are contact records, not secure login accounts. Clearing browser/site storage removes this local data. The initial supplier/product/invoice records are sample seeds. Fleet positions animate automatically from seeded routes. There is no automatic transaction generator; orders and payments are created through the checkout and settlement flows. Reset sample data restores the seeds only after confirmation.
 
 Live local monitoring evaluates stock, credit and delivery risks without an API key. GitHub Pages cannot keep an AI secret or execute a server worker. Live cloud AI, shared accounts/database, email/SMS delivery and payment-provider integration require an optional backend you control. The code does not pretend those capabilities run securely inside a static website. No secret should be added to a `VITE_` variable.
 
@@ -50,7 +50,7 @@ npm run test:e2e
 npm run test:pages
 ```
 
-The 26 domain/provider tests cover integer-cent VAT, credit limits, permissions, delivery receipt, invoice settlement, daily interest, consent, date handling, reminders, fleet movement and mocked AI/provider behaviour. The two Pages browser scenarios exercise all eight routes with no API server, persisted data, product photos, bulk quantities, price fields, interest acceptance, pause/resume and the demo. The separate server browser workflow uses a temporary SQLite database. Chromium is supplied through an npm package, so no separate browser download is required.
+The 27 domain/provider tests cover integer-cent VAT, credit limits, permissions, delivery receipt, invoice settlement, daily interest, consent, date handling, reminders, fleet movement and mocked AI/provider behaviour. The four Pages browser scenarios exercise all eight routes with no API server, persisted data, product photos, bulk quantities, price fields, interest acceptance, pause/resume, accessible dropdowns, payment validation, review and receipt downloads. The separate server browser workflow uses a temporary SQLite database. Chromium is supplied through an npm package, so no separate browser download is required.
 
 ## Optional self-hosted backend
 
@@ -89,3 +89,5 @@ Where network policy is restricted, allow `tile.openstreetmap.org`, `fonts.googl
 See [the supplied specification](docs/SPECIFICATION.md) and [audit report](docs/AUDIT.md). The earlier cloud environment draft was locked, so those configuration edits were not saved. Provider-independent proposed instructions remain in `environment/install.sh`, `environment/START.md`, and `environment/config.proposed.json` for separate review. No live process, cloud publication or external account should be assumed to survive a snapshot.
 
 Router v6 is retained as requested. npm reports moderate upstream router advisories; this app does not use SSR hydration or accept arbitrary navigation targets. The previously identified high-severity validation-library advisory was patched.
+
+Payment entry uses method selection, reference details, review and a downloadable receipt. Bank transfers and EcoCash settlements require an external reference and confirmation that payment was received. VENDA records settlement; it does not debit an account. Dropdowns support keyboard navigation and remain usable during fleet updates.

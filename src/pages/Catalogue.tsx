@@ -1,3 +1,4 @@
+import Select from "../components/ui/Select";
 import ProductImage from "../components/modules/ProductImage";
 import QuantityInput from "../components/ui/QuantityInput";
 import { useState } from "react";
@@ -182,7 +183,7 @@ export default function Catalogue() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <select
+            <Select
               aria-label="Sort products"
               value={sort}
               onChange={(e) => setSort(e.target.value)}
@@ -190,7 +191,7 @@ export default function Catalogue() {
               <option value="name">Name A–Z</option>
               <option value="priceAsc">Price: low to high</option>
               <option value="priceDesc">Price: high to low</option>
-            </select>
+            </Select>
             <Badge>{rows.length} items</Badge>
           </div>
           <div className="grid grid-cols-3 gap-3">

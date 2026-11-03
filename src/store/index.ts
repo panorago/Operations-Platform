@@ -1,6 +1,5 @@
 import { advanceFleet } from "../lib/fleet";
 import { trucks as seedTrucks } from "../data/trucks";
-import { isPreview } from "../lib/runtime";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import toast from "react-hot-toast";
@@ -12,8 +11,7 @@ let simulation: ReturnType<typeof setInterval> | undefined;
 const arrivals = new Map<string, number>();
 let playedTicks = 0;
 let references = 0;
-let tick = 0;
-let demoBusy = false;
+
 export const useAppStore = create<Store>((set, get) => ({
   ...structuredClone(seed),
   loaded: false,
@@ -28,14 +26,11 @@ export const useAppStore = create<Store>((set, get) => ({
   users: [],
   simulationRunning: true,
   simulationSpeed: 1,
-  autoTransactions: false,
-  demoOrderId: null,
+
   monitor: null,
   monitorBusy: false,
   setSimulationRunning: (simulationRunning) => set({ simulationRunning }),
   setSimulationSpeed: (simulationSpeed) => set({ simulationSpeed }),
-  setAutoTransactions: (autoTransactions) =>
-    set({ autoTransactions: isPreview && autoTransactions }),
   resetFleet: () => {
     arrivals.clear();
     set({ trucks: structuredClone(seedTrucks) });
@@ -121,7 +116,6 @@ export const useAppStore = create<Store>((set, get) => ({
     references++;
     if (!simulation)
       simulation = setInterval(() => {
-        tick++;
         const current = get();
         if (current.simulationRunning) {
           playedTicks++;
@@ -148,50 +142,6 @@ export const useAppStore = create<Store>((set, get) => ({
             return t;
           });
           set({ trucks: advanced });
-        }
-        if (
-          isPreview &&
-          current.autoTransactions &&
-          tick % 8 === 0 &&
-          !demoBusy
-        ) {
-          demoBusy = true;
-          void (async () => {
-            try {
-              const id = get().demoOrderId;
-              const order = get().orders.find((o) => o.id === id);
-              if (
-                !order ||
-                order.status === "Delivered" ||
-                order.status === "Cancelled"
-              ) {
-                const product =
-                  get().products[Math.floor(tick / 8) % get().products.length];
-                const ok = await get().command({
-                  type: "checkout",
-                  items: [{ productId: product.id, qty: 24, credit: false }],
-                  mode: "pay",
-                  method: "Cash on Delivery",
-                  terms: 30,
-                });
-                if (ok) set({ demoOrderId: get().orders[0].id });
-              } else {
-                const next =
-                  order.status === "Pending"
-                    ? "Processing"
-                    : order.status === "Processing"
-                      ? "Dispatched"
-                      : "Delivered";
-                await get().command({
-                  type: "orderStatus",
-                  id: order.id,
-                  status: next,
-                });
-              }
-            } finally {
-              demoBusy = false;
-            }
-          })();
         }
       }, 1000);
     return () => {

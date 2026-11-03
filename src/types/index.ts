@@ -102,6 +102,9 @@ export interface MonitorState {
 export interface Invoice {
   credit?: { annualRate: number; graceDays: number; issuedDate: string };
   paidAmount?: number;
+  paymentReference?: string;
+  bankName?: string;
+  receiptId?: string;
   id: string;
   supplierId: string;
   amount: number;
@@ -121,6 +124,8 @@ export interface CartItem {
   credit: boolean;
 }
 export interface Order {
+  paymentReference?: string;
+  bankName?: string;
   truckId?: string;
   id: string;
   invoiceId?: string;
@@ -174,8 +179,17 @@ export type Command =
       terms: number;
       quotedAnnualRate?: number;
       quotedGraceDays?: number;
+      paymentReference?: string;
+      bankName?: string;
     }
-  | { type: "payInvoice"; id: string; method: string; paymentDate?: string }
+  | {
+      type: "payInvoice";
+      id: string;
+      method: string;
+      paymentDate?: string;
+      paymentReference?: string;
+      bankName?: string;
+    }
   | { type: "readAlert"; id: string }
   | { type: "readAll" }
   | { type: "saveSettings"; settings: Settings }
@@ -214,11 +228,9 @@ export interface Store extends AppState {
   startSimulation: () => () => void;
   simulationRunning: boolean;
   simulationSpeed: number;
-  autoTransactions: boolean;
-  demoOrderId: string | null;
+
   setSimulationRunning: (running: boolean) => void;
   setSimulationSpeed: (speed: number) => void;
-  setAutoTransactions: (enabled: boolean) => void;
   resetFleet: () => void;
   monitor: MonitorState | null;
   monitorBusy: boolean;
@@ -256,4 +268,34 @@ export interface ProviderConfig {
   smsFrom?: string;
   emailTo?: string;
   smsTo?: string;
+}
+
+export interface SelectOption {
+  value: string;
+  label: ReactNode;
+  disabled?: boolean;
+}
+export interface SelectProps {
+  value: string | number;
+  onChange: (event: { target: { value: string } }) => void;
+  children: ReactNode;
+  className?: string;
+  placeholder?: ReactNode;
+  disabled?: boolean;
+  required?: boolean;
+  id?: string;
+  name?: string;
+  "aria-label"?: string;
+}
+export interface PaymentCompletion {
+  id: string;
+  title: string;
+  amount: number;
+  interest: number;
+  method: string;
+  reference: string;
+  bank: string;
+  date: string;
+  documentIds: string[];
+  supplierNames: string[];
 }

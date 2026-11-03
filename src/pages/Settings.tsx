@@ -1,3 +1,4 @@
+import Select from "../components/ui/Select";
 import { useSearchParams } from "react-router-dom";
 import { defaultCreditPolicy } from "../lib/credit";
 import { isPreview } from "../lib/runtime";
@@ -564,7 +565,7 @@ export default function Settings() {
               ))}
             <label className="field">
               Role
-              <select
+              <Select
                 aria-label="Role"
                 value={newUser.role}
                 onChange={(e) =>
@@ -574,7 +575,7 @@ export default function Settings() {
                 {["Admin", "Operations", "Finance"].map((r) => (
                   <option key={r}>{r}</option>
                 ))}
-              </select>
+              </Select>
             </label>
             <Button type="submit" disabled={busy}>
               {isPreview ? "Save member" : "Create user account"}

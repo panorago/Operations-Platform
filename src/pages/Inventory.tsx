@@ -1,3 +1,4 @@
+import Select from "../components/ui/Select";
 import MonitorPanel from "../components/modules/MonitorPanel";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -80,7 +81,7 @@ export default function Inventory() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <select
+          <Select
             aria-label="Inventory supplier"
             value={supplier}
             onChange={(e) => setSupplier(e.target.value)}
@@ -91,8 +92,8 @@ export default function Inventory() {
                 {p.name}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             aria-label="Inventory category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -101,7 +102,7 @@ export default function Inventory() {
             {[...new Set(s.products.map((p) => p.category))].map((c) => (
               <option key={c}>{c}</option>
             ))}
-          </select>
+          </Select>
           <label className="flex items-center gap-2 text-muted">
             <input
               type="checkbox"

@@ -1,3 +1,4 @@
+import { choose, completeOrder } from "./ui-helpers";
 import { test, expect } from "@playwright/test";
 test("GitHub Pages preview renders all eight routes without a server and persists local changes", async ({
   page,
@@ -67,9 +68,8 @@ test("GitHub Pages preview renders all eight routes without a server and persist
   await expect(
     page.getByText("Reminder schedule preview", { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Place $2.07 order", exact: true })
-    .click();
+  await choose(page, "Credit terms", "Net 15 days");
+  await completeOrder(page, "$2.07");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "Orders", exact: true }).click();
   await expect(page.locator("tbody tr").first()).toContainText("$2.07");
@@ -157,19 +157,18 @@ test("bulk quantities, input price bounds, interest consent and moving truck con
   await page
     .getByRole("button", { name: "Shop on credit", exact: true })
     .click();
-  await expect(
-    page.getByRole("button", { name: "Place $213.21 order", exact: true }),
-  ).toBeDisabled();
+  await page.getByRole("button", { name: "Review order", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Accept the interest terms",
+  );
   await page
     .getByLabel("Accept credit interest terms", { exact: true })
     .check();
-  await page
-    .getByRole("button", { name: "Place $213.21 order", exact: true })
-    .click();
+  await completeOrder(page, "$213.21");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "Live tracking", exact: true }).click();
   await page
-    .getByRole("button", { name: "Pause fleet simulation", exact: true })
+    .getByRole("button", { name: "Pause fleet updates", exact: true })
     .click();
   const marker = page.locator('.fleet-marker[title^="ZW-01 "]');
   await page.waitForTimeout(1100);
@@ -177,12 +176,9 @@ test("bulk quantities, input price bounds, interest consent and moving truck con
   await page.waitForTimeout(1200);
   expect(await marker.getAttribute("style")).toBe(position);
   await page
-    .getByRole("button", { name: "Play fleet simulation", exact: true })
+    .getByRole("button", { name: "Resume fleet updates", exact: true })
     .click();
   await expect.poll(() => marker.getAttribute("style")).not.toBe(position);
-  await page
-    .getByLabel("Fleet simulation speed", { exact: true })
-    .selectOption("4");
   await page
     .getByRole("button", { name: "Fit all trucks on map", exact: true })
     .click();
@@ -191,16 +187,164 @@ test("bulk quantities, input price bounds, interest consent and moving truck con
     fullPage: true,
   });
   await page.getByRole("link", { name: "Overview", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Run transaction demo", exact: true })
-    .click();
   await expect(
-    page.getByRole("button", { name: "Stop transaction demo", exact: true }),
+    page.getByRole("button", { name: "Run transaction demo", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("dropdowns remain usable during fleet updates and payment records produce receipts", async ({
+  page,
+}) => {
+  await page.goto("/Operations-Platform/");
+  await expect(
+    page.getByRole("heading", { name: "Good day, Dylan ." }),
   ).toBeVisible();
+  await expect(page.getByText("SIMULATION", { exact: true })).toHaveCount(0);
   await expect(
-    page.getByText(/24 units · Cash settlement/).first(),
-  ).toBeVisible({ timeout: 11000 });
+    page.getByText("One connected operation.", { exact: true }),
+  ).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Stop transaction demo", exact: true })
+    .getByRole("link", { name: "Supplier catalogue", exact: true })
     .click();
+  await choose(page, "Sort products", "Price: high to low");
+  await expect(page.locator("article").first()).toContainText(
+    "Roller Meal 10kg",
+  );
+  await choose(page, "Sort products", "Price: low to high");
+  await expect(page.locator("article").first()).toContainText(
+    "Iodated Salt 500g",
+  );
+  await page.getByRole("link", { name: "Inventory", exact: true }).click();
+  await choose(page, "Inventory supplier", "Dairiboard Foods Ltd");
+  await expect(page.locator("tbody tr")).toHaveCount(6);
+  await choose(page, "Inventory category", "Beverages");
+  await expect(page.locator("tbody tr")).toHaveCount(0);
+  await choose(page, "Inventory supplier", "All suppliers");
+  await expect(page.locator("tbody tr")).toHaveCount(4);
+  await page.getByRole("link", { name: "Orders", exact: true }).click();
+  await choose(page, "Order supplier", "National Foods Ltd");
+  await choose(page, "Order status", "Delivered");
+  await expect(page.locator("tbody tr")).toHaveCount(0);
+  await choose(page, "Order supplier", "All suppliers");
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await page
+    .getByRole("link", { name: "Credit & payments", exact: true })
+    .click();
+  await choose(page, "Invoice filter", "Paid");
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await choose(page, "Invoice filter", "All invoices");
+  await expect(page.locator("tbody tr")).toHaveCount(8);
+  await choose(page, "Invoice filter", "Outstanding");
+  await page
+    .locator("tbody tr")
+    .first()
+    .getByRole("button", { name: "Pay now", exact: true })
+    .click();
+  await page
+    .getByRole("combobox", { name: "Payment bank", exact: true })
+    .click();
+  await page.waitForTimeout(2200);
+  await expect(
+    page.getByRole("option", { name: "CBZ Bank", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+  await choose(page, "Payment bank", "CBZ Bank");
+  await page
+    .getByLabel("Payment reference", { exact: true })
+    .fill("CBZ-2026-0419");
+  await page.getByLabel("Confirm payment received", { exact: true }).check();
+  await page.screenshot({
+    path: ".runtime/payment-details.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Review payment", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("CBZ-2026-0419");
+  await page
+    .getByRole("button", { name: "Record $3,200.00 payment", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Payment recorded", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: ".runtime/payment-receipt.png",
+    fullPage: true,
+  });
+  const ready = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Download receipt", exact: true })
+    .click();
+  const receipt = await ready;
+  expect(receipt.suggestedFilename()).toMatch(/^PAY-.+-receipt\.txt$/);
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page.locator("tbody tr")).toHaveCount(5);
+  await page.reload();
+  await expect(page.locator("tbody tr")).toHaveCount(5);
+  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await choose(page, "Dashboard chart metric", "Purchase value");
+  await expect(
+    page.getByRole("combobox", { name: "Dashboard chart metric", exact: true }),
+  ).toContainText("Purchase value");
+});
+
+test("payment method choices validate EcoCash references and keep cash orders due on delivery", async ({
+  page,
+}) => {
+  await page.goto("/Operations-Platform/");
+  await page
+    .getByRole("link", { name: "Supplier catalogue", exact: true })
+    .click();
+  await page.getByLabel("Search products", { exact: true }).fill("Fresh Milk");
+  await page
+    .getByRole("button", { name: "Add Fresh Milk 2L to order", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Pay now", exact: true }).click();
+  await page
+    .getByRole("radio", { name: "Cash on Delivery", exact: true })
+    .check();
+  await completeOrder(page, "$2.07");
+  await page.getByRole("link", { name: "Orders", exact: true }).click();
+  await expect(page.locator("tbody tr").first()).toContainText(
+    "Cash on Delivery",
+  );
+  await page
+    .getByRole("link", { name: "Credit & payments", exact: true })
+    .click();
+  await page
+    .locator("tbody tr")
+    .first()
+    .getByRole("button", { name: "Pay now", exact: true })
+    .click();
+  await page.getByRole("radio", { name: "EcoCash", exact: true }).check();
+  await expect(
+    page.getByRole("combobox", { name: "Payment bank", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Review payment", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText("Enter the reference");
+  await page
+    .getByLabel("Payment reference", { exact: true })
+    .fill("ECO-0419-CHECK");
+  await page.getByLabel("Confirm payment received", { exact: true }).check();
+  await page
+    .getByRole("button", { name: "Review payment", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(
+    page.getByLabel("Payment reference", { exact: true }),
+  ).toHaveValue("ECO-0419-CHECK");
+  await page
+    .getByRole("button", { name: "Review payment", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Record $3,200.00 payment", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Payment recorded", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("ECO-0419-CHECK");
 });

@@ -5,11 +5,13 @@ export default function PreviewBanner() {
     <div className="flex shrink-0 items-center justify-between gap-3 border-b-[0.5px] border-gold/20 bg-gold/10 px-5 py-2 text-sm text-noir">
       <span>
         <span className="font-medium text-gold">DEVICE WORKSPACE</span>
-        <span className="ml-3">Data is saved in this browser</span>
+        <span className="ml-3 hidden sm:inline">
+          Data is saved in this browser
+        </span>
       </span>
       <button
         aria-label="Reset workspace"
-        className="text-muted"
+        className="min-h-9 shrink-0 text-muted"
         onClick={() => {
           if (
             window.confirm(

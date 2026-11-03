@@ -3,7 +3,7 @@ import chromium from "@sparticuz/chromium";
 export default defineConfig({
   testDir: "./tests",
   outputDir: "test-results/pages",
-  testMatch: "pages.spec.ts",
+  testMatch: ["pages.spec.ts", "responsive.spec.ts"],
   workers: 1,
   timeout: 60000,
   use: {

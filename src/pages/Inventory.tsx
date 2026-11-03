@@ -40,7 +40,7 @@ export default function Inventory() {
           </p>
         </div>
       </div>
-      <div className="mb-4 grid grid-cols-4 gap-3">
+      <div className="mb-4 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "Total SKUs", value: s.products.length, icon: Package },
           {

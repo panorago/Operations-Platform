@@ -112,7 +112,9 @@ export default function MonitorPanel({
       )}
       <div
         className={
-          compact ? "max-h-[272px] overflow-y-auto" : "grid grid-cols-3 gap-0"
+          compact
+            ? "max-h-[272px] overflow-y-auto"
+            : "grid grid-cols-1 gap-0 md:grid-cols-3"
         }
       >
         {issues.slice(0, compact ? 3 : 6).map((issue) => (

@@ -50,7 +50,7 @@ npm run test:e2e
 npm run test:pages
 ```
 
-The 27 domain/provider tests cover integer-cent VAT, credit limits, permissions, delivery receipt, invoice settlement, daily interest, consent, date handling, reminders, fleet movement and mocked AI/provider behaviour. The four Pages browser scenarios exercise all eight routes with no API server, persisted data, product photos, bulk quantities, price fields, interest acceptance, pause/resume, accessible dropdowns, payment validation, review and receipt downloads. The separate server browser workflow uses a temporary SQLite database. Chromium is supplied through an npm package, so no separate browser download is required.
+The 27 domain/provider tests cover integer-cent VAT, credit limits, permissions, delivery receipt, invoice settlement, daily interest, consent, date handling, reminders, fleet movement and mocked AI/provider behaviour. The thirteen Pages browser scenarios exercise all eight routes with no API server, persisted data, product photos, bulk quantities, price fields, interest acceptance, pause/resume, accessible dropdowns, payment validation, review and receipt downloads. The separate server browser workflow uses a temporary SQLite database. Chromium is supplied through an npm package, so no separate browser download is required.
 
 ## Optional self-hosted backend
 
@@ -91,3 +91,5 @@ See [the supplied specification](docs/SPECIFICATION.md) and [audit report](docs/
 Router v6 is retained as requested. npm reports moderate upstream router advisories; this app does not use SSR hydration or accept arbitrary navigation targets. The previously identified high-severity validation-library advisory was patched.
 
 Payment entry uses method selection, reference details, review and a downloadable receipt. Bank transfers and EcoCash settlements require an external reference and confirmation that payment was received. VENDA records settlement; it does not debit an account. Dropdowns support keyboard navigation and remain usable during fleet updates.
+
+The layout adapts from 320px phones to wide desktops: navigation becomes a drawer below 1024px, catalogue filters collapse on phones, content panels stack, and wide tables scroll within their own panels. Responsive browser checks cover 320, 375, 768, 844, 1024, 1280 and 1920px widths, including landscape payment dialogs and mobile checkout.

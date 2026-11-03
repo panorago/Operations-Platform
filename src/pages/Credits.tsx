@@ -69,7 +69,7 @@ export default function Credits() {
           Check reminder schedules
         </Button>
       </div>
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Total credit limit"
           value={money(limit)}

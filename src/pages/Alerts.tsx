@@ -90,8 +90,8 @@ export default function Alerts() {
         </Button>
       </div>
       <div className="panel">
-        <div className="flex items-center justify-between border-b-[0.5px] border-edge px-4">
-          <div className="flex gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b-[0.5px] border-edge px-3 pb-2 sm:px-4">
+          <div className="flex gap-3 sm:gap-5">
             {["All", "Stock", "Credit", "Delivery", "System"].map((t) => (
               <button
                 key={t}
@@ -131,14 +131,14 @@ export default function Alerts() {
           return (
             <article
               key={a.id}
-              className={`flex items-center gap-4 border-b-[0.5px] border-edge p-5 ${a.read ? "bg-surface" : "bg-gold/[0.035]"}`}
+              className={`flex flex-wrap items-start gap-3 border-b-[0.5px] border-edge p-5 ${a.read ? "bg-surface" : "bg-gold/[0.035]"}`}
             >
               <div
                 className={`flex h-9 w-9 items-center justify-center rounded-xl ${a.type === "Credit" ? "bg-danger-tint text-danger" : a.type === "Stock" ? "bg-gold/10 text-gold" : "bg-ivory text-muted"}`}
               >
                 <Icon aria-hidden size={17} />
               </div>
-              <div className="flex-1">
+              <div className="min-w-[180px] flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base">{a.title}</h3>
                   {!a.read && (

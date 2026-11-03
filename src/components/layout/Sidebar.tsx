@@ -4,11 +4,19 @@ import { LogOut } from "lucide-react";
 import { useAppStore, useCartStore } from "../../store";
 import { api } from "../../lib/api";
 import { links } from "./navigation";
-export default function Sidebar() {
+export default function Sidebar({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
   const s = useAppStore();
   const unread = s.alerts.filter((a) => !a.read).length;
   return (
-    <aside className="flex w-[200px] shrink-0 flex-col bg-noir text-white/40">
+    <aside
+      className={`flex h-full min-h-0 shrink-0 flex-col bg-noir text-white/40 ${mobile ? "w-full rounded-xl" : "w-[200px]"}`}
+    >
       <div className="px-6 pb-8 pt-7">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded bg-gold text-xl text-noir">
@@ -20,7 +28,10 @@ export default function Sidebar() {
         </div>
         <p className="mt-3 text-sm text-white/30">FreshMark Zimbabwe</p>
       </div>
-      <nav className="flex-1">
+      <nav
+        aria-label="Main navigation"
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
         {links
           .filter(
             (l) =>
@@ -39,10 +50,11 @@ export default function Sidebar() {
                 </p>
               )}
               <NavLink
+                onClick={onNavigate}
                 aria-label={label}
                 to={`/${path}`}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 border-l-2 px-5 py-3 ${isActive ? "border-gold bg-gold/[0.08] text-gold" : "border-transparent hover:bg-white/5 hover:text-white/70"}`
+                  `flex min-h-11 items-center gap-3 border-l-2 px-5 py-3 ${isActive ? "border-gold bg-gold/[0.08] text-gold" : "border-transparent hover:bg-white/5 hover:text-white/70"}`
                 }
               >
                 <Icon aria-hidden size={14} />

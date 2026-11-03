@@ -55,7 +55,7 @@ export default function Select({
       <Dropdown.Trigger
         id={id}
         aria-label={label}
-        className={`inline-flex min-w-[124px] items-center justify-between gap-3 rounded border-[0.5px] border-edge bg-surface px-3 py-2 text-left text-base text-noir outline-none hover:bg-ivory/50 focus-visible:ring-1 focus-visible:ring-gold data-[state=open]:border-gold disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+        className={`inline-flex min-h-11 min-w-[124px] max-w-full sm:min-h-0 items-center justify-between gap-3 rounded border-[0.5px] border-edge bg-surface px-3 py-2 text-left text-base text-noir outline-none hover:bg-ivory/50 focus-visible:ring-1 focus-visible:ring-gold data-[state=open]:border-gold disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
       >
         <Dropdown.Value
           placeholder={placeholder || empty?.label || "Choose an option"}
@@ -78,7 +78,7 @@ export default function Select({
           >
             <ChevronUp aria-hidden size={12} />
           </Dropdown.ScrollUpButton>
-          <Dropdown.Viewport className="max-h-64 p-1">
+          <Dropdown.Viewport className="max-h-[min(256px,var(--radix-select-content-available-height))] p-1">
             {items
               .filter((o) => o.value !== "" || !placeholder)
               .map((o) => (

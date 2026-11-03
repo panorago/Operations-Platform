@@ -35,7 +35,7 @@ export function Button({
       aria-label={
         p["aria-label"] || accessibleText(children).trim() || undefined
       }
-      className={`inline-flex items-center justify-center gap-2 rounded px-4 py-2 text-base font-medium transition-colors ${variant === "primary" ? "bg-noir text-gold hover:bg-noir/90" : variant === "destructive" ? "bg-danger text-white" : variant === "secondary" ? "border-[0.5px] border-edge bg-surface text-muted hover:bg-ivory" : "text-muted hover:bg-ivory"} ${p.className || ""}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded px-3 py-2 sm:min-h-0 sm:px-4 text-base font-medium transition-colors ${variant === "primary" ? "bg-noir text-gold hover:bg-noir/90" : variant === "destructive" ? "bg-danger text-white" : variant === "secondary" ? "border-[0.5px] border-edge bg-surface text-muted hover:bg-ivory" : "text-muted hover:bg-ivory"} ${p.className || ""}`}
     >
       {children}
     </button>
@@ -215,17 +215,19 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`flex max-h-[90vh] flex-col bg-surface outline-none ${drawer ? "h-screen max-h-screen w-[440px] border-l-[0.5px] border-edge" : "w-[470px] rounded-xl border-[0.5px] border-edge"}`}
+        className={`flex min-h-0 max-h-[calc(100dvh-1rem)] max-w-[calc(100%-1rem)] flex-col bg-surface outline-none ${drawer ? "h-dvh !max-h-dvh !max-w-full w-full sm:w-[440px] border-l-[0.5px] border-edge" : "w-[470px] rounded-xl border-[0.5px] border-edge"}`}
       >
-        <header className="flex items-center justify-between border-b-[0.5px] border-edge p-5">
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b-[0.5px] border-edge p-3 sm:p-5">
           <h2>{title}</h2>
           <Button variant="ghost" aria-label="Close dialog" onClick={onClose}>
             <X aria-hidden size={16} />
           </Button>
         </header>
-        <div className="overflow-y-auto p-5">{children}</div>
+        <div className="min-h-0 overflow-y-auto p-3 sm:p-5">{children}</div>
         {footer && (
-          <footer className="border-t-[0.5px] border-edge p-5">{footer}</footer>
+          <footer className="shrink-0 border-t-[0.5px] border-edge p-3 sm:p-5">
+            {footer}
+          </footer>
         )}
       </div>
     </div>
@@ -254,8 +256,13 @@ export function DataTable<T extends { id: string }>({
       })
     : data;
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-base">
+    <div
+      role="region"
+      aria-label="Scrollable data table"
+      tabIndex={0}
+      className="max-w-full overflow-x-auto overscroll-x-contain"
+    >
+      <table className="w-full min-w-[640px] text-base">
         <thead className="bg-ivory/70">
           <tr>
             {columns.map((c) => (

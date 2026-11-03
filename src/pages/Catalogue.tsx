@@ -25,6 +25,7 @@ import PaymentModal from "../components/modules/PaymentModal";
 export default function Catalogue() {
   const s = useAppStore(),
     cart = useCartStore();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState(""),
     [sort, setSort] = useState("name"),
     [categories, setCategories] = useState<string[]>([]),
@@ -73,8 +74,38 @@ export default function Catalogue() {
           {s.products.length} products · {s.suppliers.length} suppliers
         </Badge>
       </div>
-      <div className="grid grid-cols-[170px_1fr_210px] gap-4">
-        <aside className="panel h-fit p-3">
+      <div className="mb-3 flex gap-2 md:hidden">
+        <Button
+          variant="secondary"
+          aria-expanded={filtersOpen}
+          aria-controls="catalogue-filters"
+          onClick={() => setFiltersOpen(!filtersOpen)}
+        >
+          Filters
+        </Button>
+        <button
+          type="button"
+          onClick={() =>
+            document
+              .getElementById("current-order")
+              ?.scrollIntoView({
+                behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+                  .matches
+                  ? "instant"
+                  : "smooth",
+                block: "start",
+              })
+          }
+          className="flex min-h-11 items-center rounded bg-noir px-4 text-gold"
+        >
+          Current order ({cart.items.length})
+        </button>
+      </div>
+      <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[170px_minmax(0,1fr)] xl:grid-cols-[170px_minmax(0,1fr)_210px]">
+        <aside
+          id="catalogue-filters"
+          className={`panel h-fit p-3 ${filtersOpen ? "block" : "hidden md:block"}`}
+        >
           <p className="eyebrow mb-3">SUPPLIER</p>
           <button
             aria-label="All suppliers"
@@ -168,8 +199,8 @@ export default function Catalogue() {
           </p>
         </aside>
         <section className="min-w-0">
-          <div className="mb-4 flex items-center gap-2">
-            <div className="relative flex-1">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[150px] flex-1">
               <Search
                 aria-hidden
                 size={13}
@@ -194,7 +225,7 @@ export default function Catalogue() {
             </Select>
             <Badge>{rows.length} items</Badge>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-3">
             {rows.map((p) => {
               const item = cart.items.find((i) => i.productId === p.id);
               return (
@@ -286,7 +317,10 @@ export default function Catalogue() {
             vary.
           </p>
         </section>
-        <aside className="panel sticky top-0 flex max-h-[calc(100vh-195px)] flex-col self-start">
+        <aside
+          id="current-order"
+          className="panel flex scroll-mt-3 flex-col self-start md:col-span-2 xl:sticky xl:top-0 xl:col-span-1 xl:max-h-[calc(100dvh-195px)]"
+        >
           <header className="flex items-center justify-between border-b-[0.5px] border-edge p-3">
             <h3>Current order</h3>
             <Badge variant="gold">

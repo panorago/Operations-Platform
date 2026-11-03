@@ -15,7 +15,7 @@ export default function QuantityInput({
   useEffect(() => setText(String(value)), [value]);
   return (
     <div
-      className={`flex items-center overflow-hidden rounded border-[0.5px] border-edge bg-surface ${compact ? "h-7" : "h-9"}`}
+      className={`flex items-center overflow-hidden rounded border-[0.5px] border-edge bg-surface ${compact ? "h-11 sm:h-7" : "h-11 sm:h-9"}`}
     >
       <button
         type="button"
@@ -45,7 +45,7 @@ export default function QuantityInput({
             onChange(n);
         }}
         onBlur={() => setText(String(value))}
-        className="!min-w-0 !w-full !rounded-none !border-0 !px-0 !py-1 text-center !text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="!min-w-0 !w-full !rounded-none !border-0 !px-0 !py-1 text-center !text-[16px] sm:!text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       <button
         type="button"

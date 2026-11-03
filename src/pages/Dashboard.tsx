@@ -143,7 +143,7 @@ export default function Dashboard() {
   ];
   return (
     <div className="space-y-5">
-      <div className="flex items-end justify-between gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="dashboard-kicker mb-2">FreshMark command centre</p>
           <h1 className="text-[26px]">
@@ -174,7 +174,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-muted">Overview of your operation</span>
         <div className="flex items-center rounded border-[0.5px] border-edge bg-surface p-0.5">
           {[7, 30].map((n) => (
@@ -189,7 +189,7 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 xl:grid-cols-4">
         {metrics.map((m) => (
           <article
             key={m.label}
@@ -213,7 +213,7 @@ export default function Dashboard() {
           </article>
         ))}
       </div>
-      <div className="grid grid-cols-[minmax(0,1.8fr)_minmax(300px,1fr)] items-start gap-4">
+      <div className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,1.8fr)_minmax(300px,1fr)] items-start gap-4">
         <div className="space-y-4">
           <section className="panel overflow-hidden">
             <header className="flex items-center justify-between px-4 py-3.5">
@@ -247,7 +247,7 @@ export default function Dashboard() {
                 key={t.id}
                 to={`/tracking?truck=${t.id}`}
                 onClick={() => s.setSelectedTruck(t.id)}
-                className="grid grid-cols-4 items-center gap-3 border-b-[0.5px] border-edge px-4 py-3 hover:bg-ivory/50"
+                className="grid grid-cols-4 items-center gap-1 sm:gap-3 border-b-[0.5px] border-edge px-4 py-3 hover:bg-ivory/50"
               >
                 <span className="flex items-center gap-2">
                   <StatusDot
@@ -278,7 +278,7 @@ export default function Dashboard() {
             ))}
           </section>
           <section className="panel p-4">
-            <header className="mb-4 flex items-center justify-between">
+            <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3>Purchasing activity</h3>
                 <p className="mt-1 text-xs text-muted">
@@ -346,13 +346,13 @@ export default function Dashboard() {
             </div>
           </section>
           <section className="panel p-4">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h3>Supplier network</h3>
               <span className="text-xs text-muted">
                 {s.suppliers.length} connected partners
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 2xl:grid-cols-3">
               {s.suppliers.map((p) => (
                 <Link
                   key={p.id}

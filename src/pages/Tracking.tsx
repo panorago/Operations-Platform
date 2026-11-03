@@ -40,8 +40,8 @@ export default function Tracking() {
           </p>
         </div>
       </div>
-      <div className="panel grid h-[calc(100vh-200px)] min-h-[580px] grid-cols-[220px_1fr_240px] overflow-hidden">
-        <section className="overflow-auto border-r-[0.5px] border-edge">
+      <div className="panel grid grid-cols-1 overflow-hidden xl:h-[calc(100dvh-200px)] xl:min-h-[580px] xl:grid-cols-[220px_minmax(0,1fr)_240px]">
+        <section className="max-h-64 overflow-auto border-b-[0.5px] border-edge xl:max-h-none xl:border-b-0 xl:border-r-[0.5px]">
           <header className="flex items-center justify-between p-4">
             <h3>In transit</h3>
             <Badge>{s.trucks.length}</Badge>
@@ -73,7 +73,7 @@ export default function Tracking() {
             </button>
           ))}
         </section>
-        <div className="relative min-w-0">
+        <div className="relative h-[380px] min-w-0 sm:h-[480px] xl:h-auto">
           <Suspense fallback={<Spinner />}>
             <TruckMap />
           </Suspense>
@@ -92,7 +92,7 @@ export default function Tracking() {
             * Straight-line estimate · route schematic
           </p>
         </div>
-        <section className="flex flex-col overflow-auto border-l-[0.5px] border-edge p-4">
+        <section className="flex flex-col overflow-auto border-t-[0.5px] border-edge p-4 xl:border-l-[0.5px] xl:border-t-0">
           <div className="mb-4">
             <div className="flex justify-between">
               <h2>{t.id}</h2>

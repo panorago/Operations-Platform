@@ -64,7 +64,7 @@ export default function Settings() {
         <Badge variant="gold">Administrator</Badge>
       </div>
       <div className="panel">
-        <div className="flex gap-6 border-b-[0.5px] border-edge px-5">
+        <div className="flex gap-5 overflow-x-auto whitespace-nowrap border-b-[0.5px] border-edge px-3 sm:px-5">
           {["Company", "Suppliers", "Users", "Notifications", "Credits"].map(
             (t) => (
               <button
@@ -88,7 +88,7 @@ export default function Settings() {
               }}
             >
               <h3 className="mb-5">Company profile</h3>
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {(
                   Object.keys(
                     draft.company,
@@ -239,57 +239,63 @@ export default function Settings() {
                 Channel preferences are saved. Live email and SMS delivery
                 require provider integration.
               </p>
-              <table className="my-5 w-full">
-                <thead>
-                  <tr>
-                    <th>Alert category</th>
-                    {["Email", "SMS", "In-app"].map((c) => (
-                      <th key={c}>{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(draft.notifications).map(([type, value]) => (
-                    <tr key={type}>
-                      <td>
-                        {type}
-                        {type === "Credit"
-                          ? " reminders"
-                          : type === "Delivery"
-                            ? " delays"
-                            : " alerts"}
-                      </td>
-                      {(["email", "sms", "inapp"] as const).map((channel) => (
-                        <td key={channel}>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={value[channel]}
-                            aria-label={`${type} ${channel} notifications`}
-                            onClick={() =>
-                              setDraft({
-                                ...draft,
-                                notifications: {
-                                  ...draft.notifications,
-                                  [type]: {
-                                    ...value,
-                                    [channel]: !value[channel],
-                                  },
-                                },
-                              })
-                            }
-                            className={`relative h-4 w-7 rounded-full ${value[channel] ? "bg-gold" : "bg-edge"}`}
-                          >
-                            <span
-                              className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${value[channel] ? "left-3.5" : "left-0.5"}`}
-                            />
-                          </button>
-                        </td>
+              <div className="overflow-x-auto">
+                <table className="my-5 w-full">
+                  <thead>
+                    <tr>
+                      <th>Alert category</th>
+                      {["Email", "SMS", "In-app"].map((c) => (
+                        <th key={c}>{c}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {Object.entries(draft.notifications).map(
+                      ([type, value]) => (
+                        <tr key={type}>
+                          <td>
+                            {type}
+                            {type === "Credit"
+                              ? " reminders"
+                              : type === "Delivery"
+                                ? " delays"
+                                : " alerts"}
+                          </td>
+                          {(["email", "sms", "inapp"] as const).map(
+                            (channel) => (
+                              <td key={channel}>
+                                <button
+                                  type="button"
+                                  role="switch"
+                                  aria-checked={value[channel]}
+                                  aria-label={`${type} ${channel} notifications`}
+                                  onClick={() =>
+                                    setDraft({
+                                      ...draft,
+                                      notifications: {
+                                        ...draft.notifications,
+                                        [type]: {
+                                          ...value,
+                                          [channel]: !value[channel],
+                                        },
+                                      },
+                                    })
+                                  }
+                                  className={`relative h-4 w-7 rounded-full ${value[channel] ? "bg-gold" : "bg-edge"}`}
+                                >
+                                  <span
+                                    className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${value[channel] ? "left-3.5" : "left-0.5"}`}
+                                  />
+                                </button>
+                              </td>
+                            ),
+                          )}
+                        </tr>
+                      ),
+                    )}
+                  </tbody>
+                </table>
+              </div>
               <section className="mb-5 rounded-xl border-[0.5px] border-edge p-4">
                 <h3>Continuous AI monitoring</h3>
                 <p className="subtext">
@@ -350,7 +356,7 @@ export default function Settings() {
               <p className="subtext">
                 Days before payment is due. Applies to new credit invoices.
               </p>
-              <div className="my-5 grid grid-cols-3 gap-4">
+              <div className="my-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {draft.thresholds.map((days, i) => (
                   <label className="field" key={i}>
                     Reminder {i + 1} · days
@@ -418,7 +424,7 @@ export default function Settings() {
                   />
                   Charge interest on new credit purchases
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="field">
                     Annual rate (APR %)
                     <input

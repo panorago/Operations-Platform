@@ -35,8 +35,8 @@ export default function Login() {
     setBusy(false);
   }
   return (
-    <div className="grid min-h-screen grid-cols-2">
-      <section className="relative flex flex-col justify-between bg-noir p-16 text-white">
+    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-2">
+      <section className="relative hidden flex-col justify-between bg-noir p-8 lg:flex xl:p-16 text-white">
         <div className="text-xl font-medium tracking-[.25em] text-gold">
           VENDA
           <span className="ml-4 text-xs tracking-normal text-white/30">
@@ -77,7 +77,10 @@ export default function Login() {
         </p>
       </section>
       <section className="flex items-center justify-center bg-ivory">
-        <form className="w-[340px]" onSubmit={(e) => void submit(e)}>
+        <form
+          className="w-full max-w-[380px] p-5"
+          onSubmit={(e) => void submit(e)}
+        >
           <ShieldCheck aria-hidden size={28} className="mb-6 text-gold" />
           <p className="eyebrow mb-3">YOUR WORKSPACE AWAITS</p>
           <h1>{s.needsSetup ? "Welcome to VENDA" : "Welcome back"}</h1>

@@ -76,7 +76,7 @@ export default function Sidebar() {
           <p className="mt-1 text-xs">{s.user?.role}</p>
         </div>
         <button
-          aria-label={isPreview ? "Reload preview" : "Sign out"}
+          aria-label={isPreview ? "Reload workspace" : "Sign out"}
           onClick={() =>
             isPreview
               ? window.location.reload()

@@ -1,102 +1,91 @@
 # VENDA · FreshMark Operations Intelligence
 
-A desktop-first React 18 / TypeScript application for FreshMark Retail Zimbabwe, with an Express API, SQLite persistence, session authentication, and server-enforced roles. The supplied 6 suppliers, 29 products, 8 trucks, invoices, alerts, and historical orders seed a new database once.
+**[Open VENDA](https://panorago.github.io/Operations-Platform/#/dashboard)**
 
-## Run
+VENDA is hosted directly on GitHub Pages. It does not require a separate hosting signup, deployment redirect, paid hosting blueprint, or external service to open and use the device workspace. The repository root contains the compiled site: `index.html`, `assets/`, and `.nojekyll`. GitHub Pages should publish **main / (root)**.
 
-Requires Node.js 24 and npm 11. Run from the repository root:
+## What this hosted site does
+
+All eight routes work directly in the browser: dashboard, tracking, catalogue, orders, inventory, credits, alerts, and settings. Orders, stock receipts, invoice settlements, configured interest policies, notification preferences and company details are saved in that browser's local storage. Dylan is the device-workspace administrator identity. Existing browser data is retained across this update.
+
+This is a **single-device workspace**, not a shared authenticated service. Data is not synchronised between staff, devices or browsers. Device member entries are contact records, not secure login accounts. Clearing browser/site storage removes this local data. The initial supplier/product/invoice records are sample seeds. Fleet playback and the opt-in transaction demo are explicitly simulated; the demo does not send transactions to a production API. Reset sample data restores the seeds only after confirmation.
+
+Live local monitoring evaluates stock, credit and delivery risks without an API key. GitHub Pages cannot keep an AI secret or execute a server worker. Live cloud AI, shared accounts/database, email/SMS delivery and payment-provider integration require an optional backend you control. The code does not pretend those capabilities run securely inside a static website. No secret should be added to a `VITE_` variable.
+
+Payments are manual settlement records; they do not debit a bank account or wallet. Credit interest is disabled until an approved policy is entered in Settings → Credits. Product photographs are generated, product-specific illustrations; they are not verified supplier pack shots.
+
+## Workflows
+
+- **Dashboard:** operational metrics, selectable chart period/metric, interactive fleet overview, supplier network, shelf health, monitoring, urgent invoice and recorded transaction stream.
+- **Tracking:** animated direction-aware truck markers, route animation, pause/resume/speed/fit/follow controls, driver details and linked order manifests with CSV download. Offline schematic roads appear when tiles are unavailable. Routes loop after a 20-second arrival stop.
+- **Catalogue:** product photos, supplier/category/search/sort/availability filters, minimum/maximum price fields, typed bulk quantities up to 1,000,000, cart, VAT and supplier-specific credit availability.
+- **Orders:** supplier/status/date/search filters, sortable paginated table, detail drawer and Process / Dispatch / Receive / Cancel actions. Receiving updates stock once. Cancelling unpaid credit releases principal.
+- **Inventory:** stock summaries, issues filters, dated inventory rows, prefilled reorders and an actionable local monitoring panel.
+- **Credits:** account balances, invoice statuses, reminders, manual settlement records, receipts, accrued interest and explicit credit interest consent.
+- **Alerts:** unread state, category filters, contextual reorder/payment/tracking actions and mark-all-read.
+- **Settings:** company/supplier/member records, notification preferences, reminder thresholds and credit interest policy.
+
+Prices are USD, VAT is 15%, and monetary calculations use cents with supplier-level VAT rounding. Opening credit balances are the supplied snapshots, which differ from the supplied invoice totals. Dates determine invoice status rather than inconsistent relative seed labels. Displayed timestamps use Africa/Harare.
+
+Interest is simple daily interest on principal including VAT: `principal × APR / 100 × chargeableDays / 365`, rounded to cents. Policies support 0–100% APR and 0–365 grace days. Each new credit invoice stores its agreed rate and grace period. The due-date quote is an estimate; actual interest uses the recorded settlement date. Existing invoices without agreed rates are not retrospectively charged. Credit limits apply to principal. Invalid, future or pre-purchase settlement dates are rejected.
+
+## Build and publish the standalone site
+
+Requires Node.js 24 and npm 11. From this repository:
+
+```sh
+npm ci
+npm run build:pages
+npm run test:pages
+```
+
+`build:pages` builds with the `/Operations-Platform/` asset prefix, uses hash routing so route refreshes work on Pages, and updates the generated root deployment files. Commit and push those files along with source changes. GitHub's branch-based Pages publishing then rebuilds the site. A successful push is not independent proof that the remote Pages deployment completed.
+
+The canonical Vite HTML source is **web/index.html**. Do not hand-edit the generated root HTML/assets. TypeScript application source remains under `src/`. The validation workflow checks both the standalone and optional server builds and detects stale committed Pages output.
+
+```sh
+npm test
+npm run build
+npm run test:e2e
+npm run test:pages
+```
+
+The 26 domain/provider tests cover integer-cent VAT, credit limits, permissions, delivery receipt, invoice settlement, daily interest, consent, date handling, reminders, fleet movement and mocked AI/provider behaviour. The two Pages browser scenarios exercise all eight routes with no API server, persisted data, product photos, bulk quantities, price fields, interest acceptance, pause/resume and the demo. The separate server browser workflow uses a temporary SQLite database. Chromium is supplied through an npm package, so no separate browser download is required.
+
+## Optional self-hosted backend
+
+The provider-independent Express/SQLite backend remains in the repository for users who need a shared service. The public GitHub Pages site does not depend on it. There is no vendor-specific hosting configuration or deployment link.
+
+For local development:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Vite listens on port 5173 and proxies `/api` to port 3001. Open the application through your environment's supported access mechanism. The first visit creates the administrator account; there is no default password. Initialise this account before exposing a deployment publicly. Subsequent visits require sign-in.
-
-For a built application:
+Vite listens on port 5173 and proxies `/api` to the API on port 3001. For a built installation on your own Node.js 24 server:
 
 ```sh
 npm run build
 npm start
 ```
 
-Express serves the application and API together on port 3001. `PORT` overrides the port. `.env.local`, when present, is loaded by the server. Use `.env.example` as a reference and supply actual credentials securely; never commit them or prefix secrets with `VITE_`.
+Express serves the UI and API together. `PORT` overrides 3001 and `DATA_DIR` chooses a persistent database directory (default `.runtime`). Do not delete it to refresh dependencies. Back up SQLite consistently with its WAL, using SQLite's backup facilities or stopping the process before copying. Use one application process per database.
 
-## Workflows
+Configure HTTPS, `COOKIE_SECURE=true`, and a securely generated `SETUP_TOKEN` before exposing an uninitialised production server. The first administrator supplies that setup key and creates their own password; setup then closes. Sessions are HTTP-only, same-site and expire after 24 hours. The server enforces Admin / Operations / Finance mutations independently of navigation. `/api/health` provides an unauthenticated database readiness check. `.env.local` is loaded when present; `.env.example` lists optional variables without credentials.
 
-- **Dashboard:** operational metrics, supplier health, map overview, nearest deliveries, stock issues, urgent invoice, and a seven-day orders chart.
-- **Tracking:** selectable truck list and map, driver details, schematic route, estimated straight-line distance, and CSV manifest downloads. Telemetry is explicitly simulated every 30 seconds. Seed manifests use linked dispatched-order product quantities; no external GPS feed is connected. The supplier-alert button prepares a contact notification rather than claiming an email was sent.
-- **Catalogue:** supplier/category/price/availability/search/sort filters, persistent cart, quantities, VAT, supplier-specific projected credit availability, and pay or Net 7/15/30 checkout. Orders split by supplier. Store stock is not supplier warehouse availability.
-- **Orders:** search, supplier/status/date filters, sortable columns, ten-row pagination, details, and fulfilment transitions. Receiving a dispatched order adds its quantities to inventory once. Cancelling an unpaid credit order voids its invoice and releases credit.
-- **Inventory:** stock metrics and issues filters, prefilled reorder quantities, and streaming AI recommendations with an honest rule-based fallback.
-- **Credits:** current account balances, due-date calculations, outstanding/paid views, reminder timelines, manual payment records, and receipts. Overdue supplier accounts can be suspended from new credit orders.
-- **Alerts:** category filters, unread tracking, actions, and mark-all-read.
-- **Settings:** company profile, supplier editing/creation, user creation with roles, notification preferences, and reminder thresholds.
+Optional integrations:
 
-Admin has all permissions. Operations manages logistics, purchasing, and inventory. Finance views orders and manages invoices/payments. The API independently rejects unauthorised mutations; hiding navigation is not the permission boundary. User creation provisions a local account; share its initial credentials securely. Automatic invitation email and password recovery are not implemented.
+- **Anthropic:** server-only `ANTHROPIC_API_KEY`. The monitoring worker calls `claude-sonnet-4-6` when relevant data or the calendar day changes, caches assessments in SQLite and observes a configurable 5–60 minute minimum automatic interval. Local scans run every minute. Manual analysis is rate-limited. Calls can incur provider charges. A key is not shown as verified until a provider response succeeds. AI advises; it does not place orders or record payments.
+- **Email:** `RESEND_API_KEY`, verified `EMAIL_FROM`, `FINANCE_EMAIL`.
+- **SMS:** `TWILIO_ACCOUNT_SID`, `SMS_FROM`, `FINANCE_PHONE`, plus `TWILIO_AUTH_TOKEN` on a normal server or `TWILIO_AUTHORIZATION` (the complete Basic header) for proxy-backed secrets.
 
-## Financial semantics
+The server reminder worker evaluates configured thresholds and daily overdue in-app pings, suppresses paid invoices, and records blocked/failed/accepted external submissions. Accepted submissions are not claimed as confirmed delivery. Delivery callbacks, automatic retries after ambiguous submissions, automatic invitation email and password recovery are not implemented. Check provider logs before retrying uncertain sends. Live integrations remain unverified without credentials.
 
-All prices are USD. VAT is 15%, rounded to cents per supplier order. Checkout totals use the same rounding rule as the server. The server calculates prices and rejects invalid quantities, unavailable credit, and suspended supplier credit. Checkout creates operational purchase records; it does not send purchase orders to supplier ERP systems.
+Where network policy is restricted, allow `tile.openstreetmap.org`, `fonts.googleapis.com`, `fonts.gstatic.com` and any enabled provider hosts (`api.anthropic.com`, `api.resend.com`, `api.twilio.com`). Inter is also bundled locally. Node retains environment proxy and CA configuration and TLS verification.
 
-EcoCash, bank transfer, and cash on delivery are settlement methods recorded by the application. No bank account or wallet is debited. Finance must verify receipt before recording an invoice payment. There is no live payment-gateway integration. Original account balances are supplied snapshots and intentionally remain distinct from the inconsistent invoice totals in the brief. Dates, rather than conflicting relative labels, determine invoice status. Displayed timestamps use Africa/Harare.
+## Audit and reusable environment notes
 
-## Optional integrations
+See [the supplied specification](docs/SPECIFICATION.md) and [audit report](docs/AUDIT.md). The earlier cloud environment draft was locked, so those configuration edits were not saved. Provider-independent proposed instructions remain in `environment/install.sh`, `environment/START.md`, and `environment/config.proposed.json` for separate review. No live process, cloud publication or external account should be assumed to survive a snapshot.
 
-**Anthropic:** set server-only `ANTHROPIC_API_KEY`. The server calls `claude-sonnet-4-6` with low-stock data and streams the response. The browser receives neither the key nor direct provider access. Missing credentials and upstream failures preserve the default recommendation. Live AI was not tested without a key.
-
-**Email:** set `RESEND_API_KEY`, a verified `EMAIL_FROM`, and `FINANCE_EMAIL`. **SMS:** set `TWILIO_ACCOUNT_SID`, `SMS_FROM`, `FINANCE_PHONE`, and either `TWILIO_AUTH_TOKEN` for a normal server or `TWILIO_AUTHORIZATION` for proxy-backed credentials. The latter is the full Basic authorization header supplied securely; encoding a proxy placeholder as a password will not work.
-
-The reminder worker runs every minute while the server is running. It evaluates configured thresholds, stores in-app reminder state, and submits enabled email/SMS threshold reminders to the configured providers. Daily overdue pings are in-app. Payments stop future reminders. Accepted provider submissions are distinguished from confirmed recipient delivery; delivery callbacks are not implemented. Missing providers remain blocked. Ambiguous/failed submissions are retained for review and are not automatically retried. Inspect provider logs before retrying an uncertain send. These adapters have mocked request tests; live delivery requires your provider accounts and verified senders. Notification preferences do not retroactively erase existing alerts.
-
-**Network:** allow `tile.openstreetmap.org`, `fonts.googleapis.com`, `fonts.gstatic.com`, `api.anthropic.com`, `api.resend.com`, and `api.twilio.com` where required. Inter is also bundled locally so typography works without Google Fonts. The server uses Node's environment-proxy support and retains TLS verification. Map tiles require permitted network access; routes and GPS markers work independently of tiles. The current cloud policy blocks the tile/font destinations until the saved network draft is applied.
-
-## Validation
-
-```sh
-npm run build
-npm test
-npm run test:e2e
-```
-
-Domain tests cover checkout, rounding, credit enforcement, permissions, payments, cancellation, stock receipt, date handling, and reminders. Provider tests exercise request construction, rejection, missing configuration, and paid-invoice suppression. Playwright uses an npm-distributed Chromium binary and a separate temporary database. Its workflow covers every route, credit ordering, receiving stock, recording payment, manifest download, read state, settings persistence, local user creation, and API permission rejection. No live provider calls are required.
-
-## Persistence and deployment
-
-SQLite data, users, hashed session tokens, and an append-only command audit live in `.runtime/venda.sqlite`; `DATA_DIR` selects another directory. Do not delete this directory to refresh dependencies. Back up SQLite consistently with its WAL, using SQLite's backup facilities or stopping the service before copying. Keep one application process per database; this is a small-store deployment rather than a distributed database service.
-
-Terminate HTTPS at your deployment proxy and set `COOKIE_SECURE=true`. Sessions use HTTP-only, same-site cookies and expire after 24 hours. Mutations reject cross-origin browser requests; login attempts are rate-limited. Session data and operational seeds are server-owned; Zustand holds the client view, cart, and UI selections. There is no live-process restoration after a cloud snapshot: restart the service using the saved instructions.
-
-React Router v6 is retained as requested. npm reports moderate upstream router advisories, including SSR hydration and untrusted redirect paths; this app does not use SSR hydration or accept arbitrary navigation targets. The high-severity validation-library advisory was patched. Upgrading to a supported patched router major requires changing the requested version constraint.
-
-## Cloud configuration handoff
-
-The existing environment draft rejected edits as locked/uneditable. Its saved scripts and network settings were **not updated**. Complete proposed instructions are preserved in `environment/install.sh`, `environment/START.md`, and `environment/config.proposed.json`. Apply these additions in environment settings, preserving any other existing domain rules. If the draft remains locked after publication finishes, open a new setup chat from environment settings and use the preserved proposal. Review/save and publication are user actions; neither has been performed by this implementation task.
-
-## Deploy to Render
-
-A deployment blueprint is included in `render.yaml`. See [Render deployment instructions](environment/RENDER.md) for the launch link, account connection, pricing confirmation, persistent disk, and protected first-administrator setup. Production setup requires `SETUP_TOKEN`; Render generates it automatically. `/api/health` provides an unauthenticated database readiness check. The repository and ZIP have been pushed to GitHub; a public app URL exists only after the hosting service is actually created and reports Live.
-
-## GitHub Pages preview and specification audit
-
-The repository root now contains a **built, browser-only preview** for the existing `https://panorago.github.io/Operations-Platform/` Pages site. Configure GitHub Pages to publish `main` / `(root)` when using this prebuilt version. `index.html`, `assets/`, and `.nojekyll` are generated deployment output. The canonical Vite HTML source is **`web/index.html`**; application TypeScript remains under `src/`.
-
-Run `npm run build:pages` before committing a client update. This builds with the `/Operations-Platform/` asset prefix, uses hash routing for refresh-safe Pages URLs, and refreshes the generated root deployment files. `npm run test:pages` exercises the preview at that exact path without a backend. `npm run build` continues to build the full server application into `dist/` for Render. The validation workflow checks both targets and detects stale committed Pages output.
-
-The preview opens directly into the seeded dashboard and labels itself **VENDA PREVIEW**. Its changes are saved only in that browser's local storage; Reset preview restores the sample workspace. Preview users are sample team records, not authenticated accounts. It sends no passwords, purchase orders, payments, AI requests, email, or SMS. The full server build retains authentication, SQLite, server role enforcement, and optional integration adapters. GitHub Pages cannot host that server. Deploy to Render for a shared workspace.
-
-See [the supplied specification](docs/SPECIFICATION.md) and [the audit report](docs/AUDIT.md) for checked requirements, corrections, intentional differences, and remaining deployment/integration blockers. A GitHub push is not proof that the remote Pages rebuild or Render deployment has completed.
-
-## Dashboard, catalogue, monitoring and credit updates
-
-The preview administrator is **Dylan**. The dashboard now combines a larger interactive fleet map, period/metric controls, operational signals, shelf health and a live transaction stream. Fleet playback updates once a second, moves trucks toward HQ, pauses 20 seconds on arrival before looping, animates markers/routes, and supports pause, resume, speed, fit-all and follow controls. An offline schematic keeps the map useful when external tiles are blocked. Reduced-motion preferences disable decorative animation.
-
-**Run transaction demo** is available only in the labelled browser preview. Every eight seconds it advances a sample order through placement, processing, dispatch and receipt, adding real preview events and stock updates. It is off by default, can be stopped, and never submits simulated transactions to the production API. Manual order actions are named **Process**, **Dispatch**, **Receive**, and **Cancel**.
-
-Catalogue cards use product-specific, generated illustrative photographs in a local image atlas. They represent the listed product types; they are not verified supplier packaging photographs. Exact Dairiboard/Olivine/Mazoe pack shots can replace these when an approved supplier image catalogue is supplied. Quantity controls accept typed bulk quantities up to 1,000,000 units in both cards and cart. Price filters use explicit minimum/maximum currency fields.
-
-**Credit interest:** enter your approved policy under Settings → Credits. Charging is disabled and the rate is zero until configured, because no business rate was supplied. The policy supports 0–100% APR and 0–365 interest-free grace days. New credit purchases require explicit acceptance of the quoted rate and freeze that rate/grace period on the invoice. Estimated checkout interest uses the selected due date; actual settlement uses the recorded settlement date. The calculation is simple daily interest on principal including VAT: `principal × APR / 100 × chargeableDays / 365`, rounded once to cents. Existing invoices without an agreed rate are not retrospectively charged. Credit limits apply to principal; interest is added at settlement. Invalid, future or pre-purchase settlement dates are rejected.
-
-**Operations monitoring:** the old dark, static suggestion banner has been removed. Live local checks continuously evaluate current stock, credit and delivery risks and provide contextual actions. The server's new monitoring worker calls Anthropic for actual assessments when `ANTHROPIC_API_KEY` is configured, automatic monitoring is enabled and relevant state changes. It caches results in SQLite, scans once per minute, and enforces a configurable minimum automatic analysis interval of 5–60 minutes. Calendar-day changes also invalidate the cached assessment. Manual analysis is rate-limited. Calls can incur Anthropic charges. A configured key is not labelled verified until the provider returns a successful assessment. AI is advisory and never places orders or records payments. GitHub Pages remains browser-only and cannot hold this secret or run the worker; its monitoring status explicitly says that AI is not connected. Actual provider responses remain unverified until your server key is configured.
-
-The additional tests cover interest consent, daily accrual and rate snapshots, backdated payments, invalid dates, fleet convergence/arrival, live risk changes and mocked AI responses. Browser checks cover photo rendering, bulk quantity input, currency filters, interest acceptance, playback pause/resume and the transaction demo.
+Router v6 is retained as requested. npm reports moderate upstream router advisories; this app does not use SSR hydration or accept arbitrary navigation targets. The previously identified high-severity validation-library advisory was patched.

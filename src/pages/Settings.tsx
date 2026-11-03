@@ -41,7 +41,9 @@ export default function Settings() {
       setInvite(false);
       setNewUser({ name: "", email: "", role: "Operations", password: "" });
       toast.success(
-        "User account created. Share initial credentials securely.",
+        isPreview
+          ? "Member saved on this device."
+          : "User account created. Share initial credentials securely.",
       );
     } catch (e) {
       toast.error(errorMessage(e));
@@ -193,15 +195,16 @@ export default function Settings() {
             <>
               <div className="mb-4 flex justify-between">
                 <div>
-                  <h3>Workspace users</h3>
+                  <h3>{isPreview ? "Workspace members" : "Workspace users"}</h3>
                   <p className="subtext">
-                    Admin: all pages · Operations: logistics and stock ·
-                    Finance: invoices and orders.
+                    {isPreview
+                      ? "Member roles are labels on this device, not secure sign-in permissions."
+                      : "Admin: all pages · Operations: logistics and stock · Finance: invoices and orders."}
                   </p>
                 </div>
                 <Button onClick={() => setInvite(true)}>
                   <Plus aria-hidden size={12} />
-                  Invite user
+                  {isPreview ? "Add member" : "Invite user"}
                 </Button>
               </div>
               <DataTable<User>
@@ -222,8 +225,9 @@ export default function Settings() {
                 ]}
               />
               <p className="mt-4 text-sm text-muted">
-                Invitations create a local account with an initial password. No
-                invitation email is sent until an email provider is connected.
+                {isPreview
+                  ? "Device workspace members are contact records, not secure sign-in accounts. Data is not shared with other devices."
+                  : "Invitations create a local account with an initial password. Email delivery requires a connected provider."}
               </p>
             </>
           )}
@@ -288,8 +292,9 @@ export default function Settings() {
               <section className="mb-5 rounded-xl border-[0.5px] border-edge p-4">
                 <h3>Continuous AI monitoring</h3>
                 <p className="subtext">
-                  Connect ANTHROPIC_API_KEY securely in the server hosting
-                  settings. No key is stored in this browser.
+                  {isPreview
+                    ? "This website runs local operational checks directly in your browser. Cloud AI needs an optional secure API on a server you control; never put an API secret into this public site."
+                    : "Configure ANTHROPIC_API_KEY securely on your server. No key is stored in this browser."}
                 </p>
                 <label className="my-4 flex items-center gap-2">
                   <input
@@ -528,7 +533,10 @@ export default function Settings() {
         </Modal>
       )}
       {invite && (
-        <Modal title="Invite a team member" onClose={() => setInvite(false)}>
+        <Modal
+          title={isPreview ? "Add workspace member" : "Invite a team member"}
+          onClose={() => setInvite(false)}
+        >
           <form className="space-y-4" onSubmit={(e) => void addUser(e)}>
             {(["name", "email", "password"] as const)
               .filter((k) => !isPreview || k !== "password")
@@ -569,7 +577,7 @@ export default function Settings() {
               </select>
             </label>
             <Button type="submit" disabled={busy}>
-              Create user account
+              {isPreview ? "Save member" : "Create user account"}
             </Button>
           </form>
         </Modal>

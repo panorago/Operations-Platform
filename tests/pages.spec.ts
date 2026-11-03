@@ -13,7 +13,10 @@ test("GitHub Pages preview renders all eight routes without a server and persist
   await expect(
     page.getByRole("heading", { name: "Good day, Dylan ." }),
   ).toBeVisible();
-  await expect(page.getByText("VENDA PREVIEW", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("DEVICE WORKSPACE", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('a[href*="render.com"]')).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Create workspace" }),
   ).toHaveCount(0);
@@ -39,6 +42,18 @@ test("GitHub Pages preview renders all eight routes without a server and persist
   await expect(page.getByLabel("Company phone", { exact: true })).toHaveValue(
     "+263 242 123 456",
   );
+  await page.getByRole("button", { name: "Users settings" }).click();
+  await page.getByRole("button", { name: "Add member", exact: true }).click();
+  await expect(
+    page.getByLabel("New user password", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByLabel("New user name", { exact: true }).fill("Chipo Moyo");
+  await page
+    .getByLabel("New user email", { exact: true })
+    .fill("chipo@example.test");
+  await page.getByRole("button", { name: "Save member", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator("tbody")).toContainText("Chipo Moyo");
   await page
     .getByRole("link", { name: "Supplier catalogue", exact: true })
     .click();

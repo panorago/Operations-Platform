@@ -22,6 +22,7 @@ export default defineConfig({
     url: "http://127.0.0.1:3109/api/auth",
     env: {
       PORT: "3109",
+      SETUP_TOKEN: "venda-e2e-only-setup-token",
       DATA_DIR: mkdtempSync(join(tmpdir(), "venda-browser-")),
     },
     reuseExistingServer: false,

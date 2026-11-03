@@ -144,6 +144,7 @@ export interface Store extends AppState {
   loaded: boolean;
   user: User | null;
   needsSetup: boolean;
+  setupProtected: boolean;
   authChecked: boolean;
   activeSupplier: string;
   selectedTruck: string;

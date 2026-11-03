@@ -14,6 +14,7 @@ export default function Login() {
   const [name, setName] = useState(""),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
+    [setupToken, setSetupToken] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function submit(e: React.FormEvent) {
@@ -25,6 +26,7 @@ export default function Login() {
         name,
         email,
         password,
+        ...(s.needsSetup ? { setupToken } : {}),
       });
       await s.checkAuth();
     } catch (e) {
@@ -85,6 +87,23 @@ export default function Login() {
               : "Sign in to your FreshMark operations workspace."}
           </p>
           <div className="space-y-5">
+            {s.needsSetup && s.setupProtected && (
+              <label className="field">
+                Workspace setup key
+                <input
+                  aria-label="Workspace setup key"
+                  type="password"
+                  autoComplete="off"
+                  required
+                  value={setupToken}
+                  onChange={(e) => setSetupToken(e.target.value)}
+                />
+                <span className="text-xs">
+                  Use the SETUP_TOKEN in your hosting environment. Required only
+                  once.
+                </span>
+              </label>
+            )}
             {s.needsSetup && (
               <label className="field">
                 Full name

@@ -72,3 +72,7 @@ React Router v6 is retained as requested. npm reports moderate upstream router a
 ## Cloud configuration handoff
 
 The existing environment draft rejected edits as locked/uneditable. Its saved scripts and network settings were **not updated**. Complete proposed instructions are preserved in `environment/install.sh`, `environment/START.md`, and `environment/config.proposed.json`. Apply these additions in environment settings, preserving any other existing domain rules. If the draft remains locked after publication finishes, open a new setup chat from environment settings and use the preserved proposal. Review/save and publication are user actions; neither has been performed by this implementation task.
+
+## Deploy to Render
+
+A deployment blueprint is included in `render.yaml`. See [Render deployment instructions](environment/RENDER.md) for the launch link, account connection, pricing confirmation, persistent disk, and protected first-administrator setup. Production setup requires `SETUP_TOKEN`; Render generates it automatically. `/api/health` provides an unauthenticated database readiness check. The repository and ZIP have been pushed to GitHub; a public app URL exists only after the hosting service is actually created and reports Live.

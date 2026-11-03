@@ -3,7 +3,12 @@ import { processNotifications, notificationConfig } from "./notifications";
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { randomBytes, randomUUID, createHash } from "node:crypto";
+import {
+  randomBytes,
+  randomUUID,
+  createHash,
+  timingSafeEqual,
+} from "node:crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { seed } from "../src/data";
@@ -73,6 +78,14 @@ const publicUser = (u: Record<string, unknown>) => ({
   status: u.status,
 });
 const attempts = new Map<string, { count: number; until: number }>();
+app.get("/api/health", (_req, res) => {
+  try {
+    db.prepare("SELECT 1").get();
+    res.json({ status: "ok" });
+  } catch {
+    res.status(503).json({ status: "unavailable" });
+  }
+});
 app.get("/api/auth", (req, res) => {
   const token = req.headers.cookie?.match(/(?:^|; )venda_session=([^;]+)/)?.[1];
   const u = token
@@ -84,6 +97,7 @@ app.get("/api/auth", (req, res) => {
     : undefined;
   res.json({
     needsSetup: !db.prepare("SELECT id FROM users LIMIT 1").get(),
+    setupProtected: Boolean(process.env.SETUP_TOKEN),
     user: u ? publicUser(u) : null,
   });
 });
@@ -91,6 +105,33 @@ app.post("/api/setup", (req, res) => {
   if (db.prepare("SELECT id FROM users LIMIT 1").get()) {
     res.status(409).json({ error: "Already initialized" });
     return;
+  }
+  if (process.env.NODE_ENV === "production" && !process.env.SETUP_TOKEN) {
+    res
+      .status(503)
+      .json({
+        error:
+          "Initial setup is locked. Set SETUP_TOKEN in your hosting environment.",
+      });
+    return;
+  }
+  if (process.env.SETUP_TOKEN) {
+    const supplied =
+      z.string().max(256).optional().parse(req.body.setupToken) || "";
+    if (
+      !timingSafeEqual(
+        Buffer.from(digest(supplied)),
+        Buffer.from(digest(process.env.SETUP_TOKEN)),
+      )
+    ) {
+      res
+        .status(403)
+        .json({
+          error:
+            "Invalid setup key. Use SETUP_TOKEN from your hosting environment.",
+        });
+      return;
+    }
   }
   const input = userSchema.parse(req.body);
   const id = randomUUID();

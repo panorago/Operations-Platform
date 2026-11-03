@@ -6,10 +6,23 @@ test("all routes and purchasing, payment, stock and settings workflows", async (
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   expect((await page.request.get("/api/state")).status()).toBe(401);
+  expect((await page.request.get("/api/health")).status()).toBe(200);
+  const blocked = await page.request.post("/api/setup", {
+    data: {
+      name: "Wrong key",
+      email: "blocked@example.test",
+      password: randomUUID(),
+      setupToken: "incorrect",
+    },
+  });
+  expect(blocked.status()).toBe(403);
   await page.goto("/dashboard");
   await expect(
     page.getByRole("heading", { name: "Welcome to VENDA" }),
   ).toBeVisible();
+  await page
+    .getByLabel("Workspace setup key", { exact: true })
+    .fill("venda-e2e-only-setup-token");
   await page.getByLabel("Full name", { exact: true }).fill("Tariro Moyo");
   await page.getByLabel("Work email").fill("admin@freshmark.test");
   await page.getByLabel("Password", { exact: true }).fill(randomUUID());

@@ -1,0 +1,28 @@
+# Creates a paid Render web service plus a persistent 1 GB disk.
+# Render shows the current price before you confirm service creation.
+services:
+  - type: web
+    name: venda-freshmark
+    runtime: node
+    plan: starter
+    region: frankfurt
+    branch: main
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DATA_DIR
+        value: /var/data/venda
+      - key: SETUP_TOKEN
+        generateValue: true
+    disk:
+      name: venda-data
+      mountPath: /var/data
+      sizeGB: 1

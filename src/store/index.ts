@@ -12,6 +12,7 @@ export const useAppStore = create<Store>((set, get) => ({
   loaded: false,
   user: null,
   needsSetup: false,
+  setupProtected: false,
   authChecked: false,
   activeSupplier: "all",
   selectedTruck: "ZW-01",
@@ -23,6 +24,7 @@ export const useAppStore = create<Store>((set, get) => ({
       const { data } = await api.get<{
         user: User | null;
         needsSetup: boolean;
+        setupProtected: boolean;
       }>("/auth");
       set({ ...data, authChecked: true });
       if (data.user) await get().refresh();

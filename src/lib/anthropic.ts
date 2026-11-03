@@ -1,9 +1,14 @@
+import { isPreview } from "./runtime";
 import type { Product } from "../types";
 export async function getReorderSuggestions(
   _stockData: Product[],
   onChunk: (text: string) => void,
   signal?: AbortSignal,
 ) {
+  if (isPreview)
+    throw Error(
+      "Live AI is not connected in the browser preview. Use the full server deployment for live recommendations.",
+    );
   const response = await fetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

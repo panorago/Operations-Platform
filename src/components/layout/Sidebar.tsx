@@ -1,3 +1,4 @@
+import { isPreview } from "../../lib/runtime";
 import { NavLink } from "react-router-dom";
 import { ShieldCheck, LogOut } from "lucide-react";
 import { useAppStore, useCartStore } from "../../store";
@@ -38,6 +39,7 @@ export default function Sidebar() {
                 </p>
               )}
               <NavLink
+                aria-label={label}
                 to={`/${path}`}
                 className={({ isActive }) =>
                   `flex items-center gap-3 border-l-2 px-5 py-3 ${isActive ? "border-gold bg-gold/[0.08] text-gold" : "border-transparent hover:bg-white/5 hover:text-white/70"}`
@@ -74,12 +76,14 @@ export default function Sidebar() {
           <p className="mt-1 text-xs">{s.user?.role}</p>
         </div>
         <button
-          aria-label="Sign out"
+          aria-label={isPreview ? "Reload preview" : "Sign out"}
           onClick={() =>
-            void api.post("/logout").then(() => {
-              useCartStore.getState().clearCart();
-              useAppStore.setState({ user: null, loaded: false });
-            })
+            isPreview
+              ? window.location.reload()
+              : void api.post("/logout").then(() => {
+                  useCartStore.getState().clearCart();
+                  useAppStore.setState({ user: null, loaded: false });
+                })
           }
         >
           <LogOut aria-hidden size={13} />

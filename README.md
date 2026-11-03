@@ -25,7 +25,7 @@ Express serves the application and API together on port 3001. `PORT` overrides t
 ## Workflows
 
 - **Dashboard:** operational metrics, supplier health, map overview, nearest deliveries, stock issues, urgent invoice, and a seven-day orders chart.
-- **Tracking:** selectable truck list and map, driver details, schematic route, estimated straight-line distance, and CSV manifest downloads. Telemetry is explicitly simulated every 30 seconds. Seed manifests contain supplier product lines; no external GPS feed is connected. The supplier-alert button prepares a contact notification rather than claiming an email was sent.
+- **Tracking:** selectable truck list and map, driver details, schematic route, estimated straight-line distance, and CSV manifest downloads. Telemetry is explicitly simulated every 30 seconds. Seed manifests use linked dispatched-order product quantities; no external GPS feed is connected. The supplier-alert button prepares a contact notification rather than claiming an email was sent.
 - **Catalogue:** supplier/category/price/availability/search/sort filters, persistent cart, quantities, VAT, supplier-specific projected credit availability, and pay or Net 7/15/30 checkout. Orders split by supplier. Store stock is not supplier warehouse availability.
 - **Orders:** search, supplier/status/date filters, sortable columns, ten-row pagination, details, and fulfilment transitions. Receiving a dispatched order adds its quantities to inventory once. Cancelling an unpaid credit order voids its invoice and releases credit.
 - **Inventory:** stock metrics and issues filters, prefilled reorder quantities, and streaming AI recommendations with an honest rule-based fallback.
@@ -76,3 +76,13 @@ The existing environment draft rejected edits as locked/uneditable. Its saved sc
 ## Deploy to Render
 
 A deployment blueprint is included in `render.yaml`. See [Render deployment instructions](environment/RENDER.md) for the launch link, account connection, pricing confirmation, persistent disk, and protected first-administrator setup. Production setup requires `SETUP_TOKEN`; Render generates it automatically. `/api/health` provides an unauthenticated database readiness check. The repository and ZIP have been pushed to GitHub; a public app URL exists only after the hosting service is actually created and reports Live.
+
+## GitHub Pages preview and specification audit
+
+The repository root now contains a **built, browser-only preview** for the existing `https://panorago.github.io/Operations-Platform/` Pages site. Configure GitHub Pages to publish `main` / `(root)` when using this prebuilt version. `index.html`, `assets/`, and `.nojekyll` are generated deployment output. The canonical Vite HTML source is **`web/index.html`**; application TypeScript remains under `src/`.
+
+Run `npm run build:pages` before committing a client update. This builds with the `/Operations-Platform/` asset prefix, uses hash routing for refresh-safe Pages URLs, and refreshes the generated root deployment files. `npm run test:pages` exercises the preview at that exact path without a backend. `npm run build` continues to build the full server application into `dist/` for Render. The validation workflow checks both targets and detects stale committed Pages output.
+
+The preview opens directly into the seeded dashboard and labels itself **VENDA PREVIEW**. Its changes are saved only in that browser's local storage; Reset preview restores the sample workspace. Preview users are sample team records, not authenticated accounts. It sends no passwords, purchase orders, payments, AI requests, email, or SMS. The full server build retains authentication, SQLite, server role enforcement, and optional integration adapters. GitHub Pages cannot host that server. Deploy to Render for a shared workspace.
+
+See [the supplied specification](docs/SPECIFICATION.md) and [the audit report](docs/AUDIT.md) for checked requirements, corrections, intentional differences, and remaining deployment/integration blockers. A GitHub push is not proof that the remote Pages rebuild or Render deployment has completed.

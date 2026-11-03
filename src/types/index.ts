@@ -84,6 +84,7 @@ export interface CartItem {
   credit: boolean;
 }
 export interface Order {
+  truckId?: string;
   id: string;
   invoiceId?: string;
   supplierId: string;

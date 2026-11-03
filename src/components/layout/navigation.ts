@@ -13,7 +13,7 @@ export const links = [
     path: "dashboard",
     label: "Overview",
     icon: LayoutDashboard,
-    group: "WORKSPACE",
+    group: "MAIN",
   },
   {
     path: "tracking",
@@ -29,7 +29,7 @@ export const links = [
     path: "alerts",
     label: "Alerts & reminders",
     icon: Bell,
-    group: "MANAGEMENT",
+    group: "ACCOUNT",
   },
   { path: "settings", label: "Settings", icon: Settings },
 ];

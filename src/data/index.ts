@@ -14,21 +14,25 @@ export const seed: AppState = {
     return {
       id: `ORD-${1040 + i}`,
       supplierId,
+      ...(i < 8 ? { truckId: trucks[i].id } : {}),
       items: products
         .filter((p) => p.supplierId === supplierId)
-        .slice(0, 3)
+        .slice(0, i < 8 ? undefined : 3)
         .map((p) => ({ productId: p.id, qty: 10, credit: false })),
       total:
         Math.round(
           products
             .filter((p) => p.supplierId === supplierId)
-            .slice(0, 3)
+            .slice(0, i < 8 ? undefined : 3)
             .reduce((n, p) => n + p.price * 10, 0) * 115,
         ) / 100,
       date: `2026-11-${String(3 - Math.floor(i / 5)).padStart(2, "0")}T08:30:00+02:00`,
-      status: (["Processing", "Dispatched", "Delivered", "Pending"] as const)[
-        i % 4
-      ],
+      status:
+        i < 8
+          ? "Dispatched"
+          : (["Processing", "Dispatched", "Delivered", "Pending"] as const)[
+              i % 4
+            ],
       paymentMode: "pay",
       paymentMethod: "Cash on Delivery",
       terms: 0,

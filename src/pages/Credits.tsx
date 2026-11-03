@@ -1,3 +1,4 @@
+import { addDays, subDays, parseISO } from "date-fns";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAppStore } from "../store";
@@ -252,7 +253,7 @@ export default function Credits() {
                   <p className="mt-2 text-xs text-muted">
                     {r.sentAt
                       ? date(r.sentAt, "dd MMM yyyy · HH:mm")
-                      : "Scheduled before due date"}
+                      : `Scheduled ${date(subDays(parseISO(selected.dueDate), r.days).toISOString())}`}
                   </p>
                   <div className="mt-2 flex items-center gap-2 text-xs text-muted">
                     {r.channels.includes("email") && (
@@ -266,8 +267,15 @@ export default function Credits() {
                   </div>
                   {r.sent && (
                     <p className="mt-2 text-xs text-muted">
-                      In-app delivered. Email / SMS not sent: providers
-                      unconfigured.
+                      {r.delivery}.{" "}
+                      {r.channelDelivery
+                        ? Object.entries(r.channelDelivery)
+                            .map(
+                              ([channel, result]) =>
+                                `${channel}: ${result.status === "Accepted" ? "accepted by provider" : result.status.toLowerCase()}`,
+                            )
+                            .join(" · ")
+                        : "Email / SMS: pending provider configuration."}
                     </p>
                   )}
                 </div>
@@ -284,6 +292,10 @@ export default function Credits() {
                     ? "credit suspended"
                     : "credit review"}
                 </h3>
+                <p className="mt-2 text-xs text-muted">
+                  Trigger date:{" "}
+                  {date(addDays(parseISO(selected.dueDate), 1).toISOString())}
+                </p>
                 <p className="mt-2 text-xs leading-5 text-muted">
                   {selected.paid
                     ? "Closed after payment."

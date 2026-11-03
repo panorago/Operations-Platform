@@ -1,3 +1,4 @@
+import PaymentModal from "../components/modules/PaymentModal";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,9 +10,9 @@ import {
   Check,
   ArrowRight,
 } from "lucide-react";
-import { useAppStore } from "../store";
+import { useAppStore, useCartStore } from "../store";
 import { Badge, Button, EmptyState } from "../components/ui";
-import { date } from "../lib/utils";
+import { date, daysLeft } from "../lib/utils";
 const icons = {
   Stock: Package,
   Credit: CreditCard,
@@ -22,11 +23,46 @@ export default function Alerts() {
   const s = useAppStore();
   const navigate = useNavigate();
   const [tab, setTab] = useState("All");
+  const [pay, setPay] = useState<string | null>(null);
+  const canPay = s.user?.role !== "Operations";
   const rows = s.alerts
-    .filter((a) => tab === "All" || a.type === tab)
+    .filter(
+      (a) => (tab === "All" || a.type === tab) && (a.id !== "sync" || !a.read),
+    )
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   const action = (a: (typeof rows)[number]) => {
     void s.command({ type: "readAlert", id: a.id });
+    const product = s.products.find((p) => p.id === a.entityId);
+    const invoice = s.invoices.find((i) => i.id === a.entityId);
+    if (
+      a.type === "Stock" &&
+      product &&
+      product.stock > 0 &&
+      product.stock <= product.reorderLevel &&
+      s.user?.role !== "Finance"
+    ) {
+      useCartStore
+        .getState()
+        .addItem(
+          product.id,
+          false,
+          Math.max(1, product.reorderLevel - product.stock),
+        );
+      s.setActiveSupplier(product.supplierId);
+      navigate("/catalogue");
+      return;
+    }
+    if (
+      a.type === "Credit" &&
+      invoice &&
+      !invoice.paid &&
+      daysLeft(invoice) < 0 &&
+      canPay
+    ) {
+      setPay(invoice.id);
+      return;
+    }
+    if (a.id === "sync") return;
     navigate(
       a.type === "Credit" && a.entityId
         ? `/credits?invoice=${a.entityId}`
@@ -61,7 +97,7 @@ export default function Alerts() {
                 key={t}
                 aria-label={`Show ${t} alerts`}
                 onClick={() => setTab(t)}
-                className={`border-b-2 py-4 ${t === tab ? "border-gold text-gold" : "border-transparent text-muted"}`}
+                className={`border-b-[0.5px] py-4 ${t === tab ? "border-gold text-gold" : "border-transparent text-muted"}`}
               >
                 {t}
               </button>
@@ -72,6 +108,25 @@ export default function Alerts() {
           </Badge>
         </div>
         {rows.map((a) => {
+          const product = s.products.find((p) => p.id === a.entityId);
+          const invoice = s.invoices.find((i) => i.id === a.entityId);
+          const actionLabel =
+            a.id === "sync"
+              ? "Dismiss"
+              : a.type === "Stock"
+                ? product &&
+                  product.stock > 0 &&
+                  product.stock <= product.reorderLevel &&
+                  s.user?.role !== "Finance"
+                  ? "Reorder"
+                  : "View inventory"
+                : a.type === "Credit"
+                  ? invoice && !invoice.paid && daysLeft(invoice) < 0 && canPay
+                    ? "Pay now"
+                    : "View invoice"
+                  : a.type === "Delivery"
+                    ? "Track truck"
+                    : "View";
           const Icon = icons[a.type];
           return (
             <article
@@ -100,13 +155,7 @@ export default function Alerts() {
                 aria-label={`Open ${a.title}`}
                 onClick={() => action(a)}
               >
-                {a.type === "Stock"
-                  ? "View inventory"
-                  : a.type === "Credit"
-                    ? "View invoice"
-                    : a.type === "Delivery"
-                      ? "Track truck"
-                      : "View"}
+                {actionLabel}
                 <ArrowRight aria-hidden size={11} />
               </Button>
               {!a.read && (
@@ -130,6 +179,9 @@ export default function Alerts() {
           />
         )}
       </div>
+      {pay && (
+        <PaymentModal mode="pay" invoiceId={pay} onClose={() => setPay(null)} />
+      )}
     </>
   );
 }

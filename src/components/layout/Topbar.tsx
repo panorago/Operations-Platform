@@ -1,3 +1,4 @@
+import { isPreview } from "../../lib/runtime";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { useAppStore } from "../../store";
@@ -23,7 +24,7 @@ export default function Topbar() {
         </span>
         <span className="flex items-center gap-1.5 text-xs text-success">
           <span className="h-1.5 w-1.5 rounded-full bg-success" />
-          System connected
+          {isPreview ? "Browser preview" : "System connected"}
         </span>
         <button
           aria-label={`${unread} unread notifications`}

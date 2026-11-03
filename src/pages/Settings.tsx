@@ -1,3 +1,4 @@
+import { isPreview } from "../lib/runtime";
 import { useEffect, useState } from "react";
 import { Plus, Check } from "lucide-react";
 import toast from "react-hot-toast";
@@ -64,7 +65,7 @@ export default function Settings() {
                 key={t}
                 aria-label={`${t} settings`}
                 onClick={() => setTab(t)}
-                className={`border-b-2 py-4 ${tab === t ? "border-gold text-gold" : "border-transparent text-muted"}`}
+                className={`border-b-[0.5px] py-4 ${tab === t ? "border-gold text-gold" : "border-transparent text-muted"}`}
               >
                 {t}
               </button>
@@ -408,28 +409,30 @@ export default function Settings() {
       {invite && (
         <Modal title="Invite a team member" onClose={() => setInvite(false)}>
           <form className="space-y-4" onSubmit={(e) => void addUser(e)}>
-            {(["name", "email", "password"] as const).map((k) => (
-              <label key={k} className="field capitalize">
-                {k === "password" ? "Initial password (12+ characters)" : k}
-                <input
-                  aria-label={`New user ${k}`}
-                  autoComplete={k === "password" ? "new-password" : undefined}
-                  required
-                  minLength={k === "password" ? 12 : undefined}
-                  type={
-                    k === "email"
-                      ? "email"
-                      : k === "password"
-                        ? "password"
-                        : "text"
-                  }
-                  value={newUser[k]}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, [k]: e.target.value })
-                  }
-                />
-              </label>
-            ))}
+            {(["name", "email", "password"] as const)
+              .filter((k) => !isPreview || k !== "password")
+              .map((k) => (
+                <label key={k} className="field capitalize">
+                  {k === "password" ? "Initial password (12+ characters)" : k}
+                  <input
+                    aria-label={`New user ${k}`}
+                    autoComplete={k === "password" ? "new-password" : undefined}
+                    required
+                    minLength={k === "password" ? 12 : undefined}
+                    type={
+                      k === "email"
+                        ? "email"
+                        : k === "password"
+                          ? "password"
+                          : "text"
+                    }
+                    value={newUser[k]}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, [k]: e.target.value })
+                    }
+                  />
+                </label>
+              ))}
             <label className="field">
               Role
               <select

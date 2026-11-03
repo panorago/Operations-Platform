@@ -1,5 +1,13 @@
+import { isPreview } from "./lib/runtime";
 import { useEffect, lazy, Suspense, type ReactNode } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
+import {
+  BrowserRouter,
+  HashRouter,
+  Routes,
+  Route,
+  Navigate,
+  Link,
+} from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Shell from "./components/layout/Shell";
 import { Spinner, EmptyState } from "./components/ui";
@@ -29,6 +37,7 @@ function Access({ roles, children }: { roles: string[]; children: ReactNode }) {
     />
   );
 }
+const Router = isPreview ? HashRouter : BrowserRouter;
 export default function App() {
   const s = useAppStore();
   useEffect(() => {
@@ -36,7 +45,7 @@ export default function App() {
   }, [s.checkAuth]);
   return (
     <>
-      <BrowserRouter>
+      <Router>
         {!s.authChecked ? (
           <Spinner />
         ) : !s.user ? (
@@ -115,7 +124,7 @@ export default function App() {
             </Routes>
           </Suspense>
         )}
-      </BrowserRouter>
+      </Router>
       <Toaster
         position="bottom-right"
         toastOptions={{

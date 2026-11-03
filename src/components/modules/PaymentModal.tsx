@@ -1,8 +1,9 @@
+import { addDays, parseISO } from "date-fns";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Button, Modal } from "../ui";
 import { useAppStore, useCartStore } from "../../store";
-import { money } from "../../lib/utils";
+import { money, date, today } from "../../lib/utils";
 export default function PaymentModal({
   mode,
   invoiceId,
@@ -92,6 +93,7 @@ export default function PaymentModal({
             <label className="field">
               Credit terms
               <select
+                aria-label="Credit terms"
                 value={terms}
                 onChange={(e) => setTerms(Number(e.target.value))}
               >
@@ -102,6 +104,31 @@ export default function PaymentModal({
                 ))}
               </select>
             </label>
+            <div className="rounded bg-ivory p-3">
+              <p className="mb-2 font-medium">Reminder schedule preview</p>
+              {store.settings.thresholds.map((days) => (
+                <p
+                  key={days}
+                  className="my-1 flex justify-between text-sm text-muted"
+                >
+                  <span>{days}-day alert</span>
+                  <span>
+                    {terms < days
+                      ? "On next reminder check"
+                      : date(
+                          addDays(
+                            parseISO(today()),
+                            terms - days,
+                          ).toISOString(),
+                        )}
+                  </span>
+                </p>
+              ))}
+              <p className="mt-2 border-t-[0.5px] border-edge pt-2">
+                Payment due{" "}
+                {date(addDays(parseISO(today()), terms).toISOString())}
+              </p>
+            </div>
             <p className="text-muted">
               Reminder checks at {store.settings.thresholds.join(" / ")} days
               before the due date. For short terms, elapsed thresholds activate
@@ -112,7 +139,11 @@ export default function PaymentModal({
         ) : (
           <label className="field">
             Payment method
-            <select value={method} onChange={(e) => setMethod(e.target.value)}>
+            <select
+              aria-label="Payment method"
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+            >
               {["EcoCash", "Bank Transfer", "Cash on Delivery"].map((m) => (
                 <option key={m}>{m}</option>
               ))}

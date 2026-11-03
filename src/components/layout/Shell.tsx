@@ -1,3 +1,4 @@
+import PreviewBanner from "../modules/PreviewBanner";
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
@@ -22,6 +23,7 @@ export default function Shell() {
     <div className="flex h-screen min-w-[1280px] overflow-hidden bg-ivory">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
+        <PreviewBanner />
         <Topbar />
         <main className="flex-1 overflow-y-auto px-5 py-[18px]">
           <Outlet />

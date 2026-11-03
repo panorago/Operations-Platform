@@ -256,3 +256,31 @@ test("timestamps display in Africa/Harare", async () => {
     "04 Nov 2026 00:30",
   );
 });
+
+test("each seeded truck has an associated dispatched order and manifest quantities", () => {
+  for (const truck of seed.trucks) {
+    const order = seed.orders.find((o) => o.truckId === truck.id);
+    assert.ok(order);
+    assert.equal(order.status, "Dispatched");
+    assert.equal(order.supplierId, truck.supplierId);
+    assert.ok(order.items.length >= 4);
+    assert.ok(
+      order.items.every((i) => Number.isSafeInteger(i.qty) && i.qty > 0),
+    );
+  }
+});
+test("credit due date starts from the Harare calendar day near UTC midnight", () => {
+  const state = applyCommand(
+    seed,
+    {
+      type: "checkout",
+      items: [item],
+      mode: "credit",
+      method: "Bank Transfer",
+      terms: 7,
+    },
+    "Admin",
+    new Date("2026-11-03T23:30:00Z"),
+  );
+  assert.equal(state.invoices[0].dueDate, "2026-11-11");
+});

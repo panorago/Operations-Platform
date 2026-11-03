@@ -16,9 +16,11 @@ const tone = (s: string) =>
     ? "success"
     : s === "Cancelled"
       ? "danger"
-      : s === "Processing" || s === "Dispatched"
-        ? "warning"
-        : "neutral";
+      : s === "Dispatched"
+        ? "info"
+        : s === "Processing"
+          ? "warning"
+          : "neutral";
 export default function Orders() {
   const s = useAppStore();
   const [q, setQ] = useState(""),

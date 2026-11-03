@@ -22,7 +22,13 @@ export default function Tracking() {
     if (id && s.trucks.some((t) => t.id === id)) s.setSelectedTruck(id);
   }, [params]);
   const t = s.trucks.find((t) => t.id === s.selectedTruck)!;
-  const manifest = s.products.filter((p) => p.supplierId === t.supplierId);
+  const order = s.orders.find(
+    (o) => o.truckId === t.id && o.status !== "Cancelled",
+  );
+  const manifest = (order?.items || []).flatMap((item) => {
+    const product = s.products.find((p) => p.id === item.productId);
+    return product ? [{ ...product, qty: item.qty }] : [];
+  });
   return (
     <>
       <div className="page-heading">
@@ -51,7 +57,7 @@ export default function Tracking() {
                 s.setSelectedTruck(tr.id);
                 setAll(false);
               }}
-              className={`w-full border-b-[0.5px] border-edge px-4 py-4 text-left ${tr.id === t.id ? "border-l-2 border-l-gold bg-gold/5" : "hover:bg-ivory"}`}
+              className={`w-full border-b-[0.5px] border-edge px-4 py-4 text-left ${tr.id === t.id ? "border-l-[0.5px] border-l-gold bg-gold/5" : "hover:bg-ivory"}`}
             >
               <div className="flex items-center gap-2">
                 <StatusDot status={tr.delayed ? "danger" : "success"} />
@@ -135,7 +141,7 @@ export default function Tracking() {
           </div>
           <h3 className="mb-1">Delivery manifest</h3>
           <p className="mb-2 text-xs text-muted">
-            Supplier product lines · seeded manifest
+            Order {order?.id || "not assigned"}
           </p>
           {manifest.slice(0, all ? undefined : 4).map((p) => (
             <div
@@ -143,6 +149,7 @@ export default function Tracking() {
               className="border-b-[0.5px] border-edge py-2 text-sm"
             >
               {p.name}
+              <span className="float-right text-muted">× {p.qty}</span>
             </div>
           ))}
           {manifest.length > 4 && (
@@ -174,9 +181,12 @@ export default function Tracking() {
               onClick={() =>
                 download(
                   `${t.id}-manifest.csv`,
-                  "Truck,Product,Supplier\n" +
+                  "Truck,Order,Product,Supplier,Quantity\n" +
                     manifest
-                      .map((p) => `${t.id},"${p.name}","${p.supplierName}"`)
+                      .map(
+                        (p) =>
+                          `${t.id},${order?.id || ""},"${p.name}","${p.supplierName}",${p.qty}`,
+                      )
                       .join("\n"),
                   "text/csv",
                 )

@@ -45,7 +45,7 @@ export default function Login() {
         </div>
         <div>
           <p className="eyebrow mb-6 text-gold">OPERATIONS INTELLIGENCE</p>
-          <h1 className="max-w-md text-[42px] leading-tight">
+          <h1 className="max-w-md text-2xl leading-tight">
             Every delivery.
             <br />
             Every shelf.

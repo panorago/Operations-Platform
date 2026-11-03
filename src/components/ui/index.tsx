@@ -50,16 +50,22 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex self-start items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-xs font-medium ${variant === "success" ? "bg-success-tint text-success" : variant === "danger" ? "bg-danger-tint text-danger" : variant === "warning" || variant === "gold" ? "bg-gold/10 text-gold" : "bg-ivory text-muted"}`}
+      className={`inline-flex self-start items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-xs font-medium ${variant === "success" ? "bg-success-tint text-success" : variant === "danger" ? "bg-danger-tint text-danger" : variant === "info" ? "bg-blue-50 text-blue-700" : variant === "warning" || variant === "gold" ? "bg-gold/10 text-gold" : "bg-ivory text-muted"}`}
     >
       {children}
     </span>
   );
 }
-export const StatusDot = ({ status = "success" }: { status?: string }) => (
+export const StatusDot = ({
+  status = "success",
+  size = "sm",
+}: {
+  status?: string;
+  size?: "sm" | "md";
+}) => (
   <span
     aria-hidden
-    className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${["danger", "offline"].includes(status) ? "bg-danger" : ["warning", "amber"].includes(status) ? "bg-gold" : "bg-success"}`}
+    className={`inline-block ${size === "md" ? "h-2 w-2" : "h-1.5 w-1.5"} shrink-0 rounded-full ${["danger", "offline"].includes(status) ? "bg-danger" : ["warning", "amber"].includes(status) ? "bg-gold" : "bg-success"}`}
   />
 );
 export function ProgressBar({

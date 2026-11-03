@@ -5,7 +5,8 @@ import { defineConfig } from "@playwright/test";
 import chromium from "@sparticuz/chromium";
 export default defineConfig({
   testDir: "./tests",
-  testMatch: "*.spec.ts",
+  outputDir: "test-results/server",
+  testMatch: "workflows.spec.ts",
   workers: 1,
   timeout: 60000,
   use: {

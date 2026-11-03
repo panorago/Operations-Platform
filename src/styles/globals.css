@@ -1,0 +1,120 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  body {
+    @apply m-0 bg-ivory font-sans text-base font-normal text-noir;
+    min-width: 1280px;
+  }
+  h1 {
+    @apply text-2xl font-medium;
+  }
+  h2 {
+    @apply text-xl font-medium;
+  }
+  h3 {
+    @apply text-lg font-medium;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    @apply font-sans;
+  }
+  button {
+    @apply cursor-pointer;
+  }
+  button:disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+  input:not([type="checkbox"]):not([type="range"]),
+  select,
+  textarea {
+    @apply rounded border-[0.5px] border-edge bg-surface px-3 py-2 text-base outline-none focus:ring-1 focus:ring-gold;
+  }
+  input[type="checkbox"],
+  input[type="range"] {
+    @apply accent-gold;
+  }
+  th {
+    @apply text-left text-sm font-medium uppercase tracking-wider text-muted;
+  }
+  td,
+  th {
+    @apply px-3 py-3;
+  }
+  tbody tr {
+    @apply border-b-[0.5px] border-[#F0EBE3];
+  }
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+  }
+  ::selection {
+    @apply bg-gold/20;
+  }
+}
+@layer components {
+  .panel {
+    @apply rounded-xl border-[0.5px] border-edge bg-surface;
+  }
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-[0.15em] text-muted;
+  }
+  .field {
+    @apply flex flex-col gap-2 text-sm text-muted;
+  }
+  .toolbar {
+    @apply flex items-center gap-3 py-4;
+  }
+  .page-heading {
+    @apply mb-5 flex items-end justify-between;
+  }
+  .subtext {
+    @apply mt-1 text-base text-muted;
+  }
+  .icon {
+    @apply h-4 w-4;
+  }
+}
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: Inter, sans-serif;
+  z-index: 0;
+  background: #eeeae1;
+}
+.leaflet-control-attribution {
+  font-size: 9px !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  box-shadow: none !important;
+  border-radius: 6px;
+}
+.leaflet-div-icon {
+  background: transparent;
+  border: 0;
+}
+.map-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2d7a4f;
+  outline: 4px solid #ffffff99;
+}
+.map-dot.delayed {
+  background: #c0392b;
+}
+.map-dot.hq {
+  border-radius: 3px;
+  background: #1c1c2e;
+  outline-color: #c9933a;
+}
+.leaflet-control-zoom {
+  box-shadow: none !important;
+}
